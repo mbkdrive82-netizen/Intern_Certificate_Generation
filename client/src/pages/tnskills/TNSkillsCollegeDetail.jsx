@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import AppLayout from '../../components/layout/AppLayout';
 import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
@@ -8,9 +8,10 @@ import { Building2, Layers, Search, Filter, CheckCircle2, Clock } from 'lucide-r
 
 const TNSkillsCollegeDetail = () => {
   const { id: collegeId } = useParams();
+  const [searchParams] = useSearchParams();
   const [college, setCollege] = useState(null);
   const [departments, setDepartments] = useState([]);
-  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedDept, setSelectedDept] = useState(searchParams.get('dept') || '');
   const [selectedYear, setSelectedYear] = useState('');
   const [search, setSearch] = useState('');
 

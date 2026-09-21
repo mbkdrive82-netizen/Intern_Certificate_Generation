@@ -16,8 +16,13 @@ const getDashboard = async (req, res, next) => {
     const colleges = await College.find({ isActive: true }).sort({ name: 1 });
     const collegeListWithStats = await Promise.all(
       colleges.map(async (col) => {
-        const studentCount = await Student.countDocuments({ collegeId: col._id });
-        const departments = await Student.distinct('department', { collegeId: col._id });
+        const deptNames = await Student.distinct('department', { collegeId: col._id });
+        const departments = await Promise.all(
+          deptNames.map(async (d) => {
+            const count = await Student.countDocuments({ collegeId: col._id, department: d });
+            return { name: d, count };
+          })
+        );
         const certCount = await Certificate.countDocuments({
           studentId: { $in: await Student.find({ collegeId: col._id }).distinct('_id') },
           status: 'GENERATED'
@@ -29,6 +34,7 @@ const getDashboard = async (req, res, next) => {
           code: col.code,
           studentCount,
           departments,
+          deptCount: departments.length,
           certCount,
           pendingCount: Math.max(0, studentCount - certCount)
         };
