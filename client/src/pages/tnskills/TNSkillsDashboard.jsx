@@ -18,6 +18,7 @@ const TNSkillsDashboard = () => {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedCollege, setSelectedCollege] = useState(null);
 
   useEffect(() => {
@@ -27,12 +28,16 @@ const TNSkillsDashboard = () => {
   const fetchDashboard = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.get('/tnskills/dashboard');
-      if (res.data.success) {
+      if (res.data?.success) {
         setData(res.data);
+      } else {
+        setError(res.data?.message || 'Failed to load dashboard data');
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      setError(err.response?.data?.message || err.message || 'Error communicating with server');
     } finally {
       setLoading(false);
     }
@@ -66,6 +71,24 @@ const TNSkillsDashboard = () => {
           <div className="flex flex-col items-center space-y-3">
             <div className="w-8 h-8 border-3 border-red-600 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-xs font-medium text-slate-500">Loading Dashboard...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <AppLayout title="State Monitoring Dashboard">
+        <div className="flex items-center justify-center h-80">
+          <div className="flex flex-col items-center space-y-3 max-w-sm text-center bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+            <p className="text-sm font-bold text-red-600">{error}</p>
+            <button
+              onClick={fetchDashboard}
+              className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-black transition-all cursor-pointer"
+            >
+              Retry Connection
+            </button>
           </div>
         </div>
       </AppLayout>
