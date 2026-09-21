@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 min-h-screen font-sans antialiased;
+  }
+}
+
+.sm-enterprise-pattern {
+  background-color: #f8fafc;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(226, 232, 240, 0.55),
+    rgba(226, 232, 240, 0.55) 1.5px,
+    transparent 1.5px,
+    transparent 15px
+  );
+}

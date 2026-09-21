@@ -1,0 +1,351 @@
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 297mm;
+  height: 210mm;
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  font-family: 'Times New Roman', 'Georgia', 'Playfair Display', serif;
+  color: #1a202c;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  overflow: hidden;
+}
+
+.cert-container {
+  width: 297mm;
+  height: 210mm;
+  position: relative;
+  padding: 12mm 16mm;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Elegant Multi-layered Borders */
+.cert-outer-border {
+  position: absolute;
+  top: 8mm;
+  left: 8mm;
+  right: 8mm;
+  bottom: 8mm;
+  border: 4px solid #0f2b48; /* Deep Royal Navy */
+  pointer-events: none;
+}
+
+.cert-inner-border {
+  position: absolute;
+  top: 10.5mm;
+  left: 10.5mm;
+  right: 10.5mm;
+  bottom: 10.5mm;
+  border: 1.5px solid #c59b27; /* Royal Gold */
+  pointer-events: none;
+}
+
+.cert-thin-border {
+  position: absolute;
+  top: 12mm;
+  left: 12mm;
+  right: 12mm;
+  bottom: 12mm;
+  border: 0.5px solid #e2d197;
+  pointer-events: none;
+}
+
+/* Corner Ornaments */
+.corner-ornament {
+  position: absolute;
+  width: 24mm;
+  height: 24mm;
+  pointer-events: none;
+  z-index: 10;
+}
+.corner-tl { top: 8mm; left: 8mm; }
+.corner-tr { top: 8mm; right: 8mm; transform: scaleX(-1); }
+.corner-bl { bottom: 8mm; left: 8mm; transform: scaleY(-1); }
+.corner-br { bottom: 8mm; right: 8mm; transform: scale(-1); }
+
+/* Watermark in background */
+.cert-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100mm;
+  height: 100mm;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Content Layout */
+.cert-content {
+  position: relative;
+  z-index: 5;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  padding: 4mm 8mm;
+}
+
+/* Top Branding Bar */
+.cert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22mm;
+  padding-bottom: 2mm;
+}
+
+.logo-box {
+  width: 50mm;
+  height: 20mm;
+  display: flex;
+  align-items: center;
+}
+
+.logo-left { justify-content: flex-start; }
+.logo-right { justify-content: flex-end; }
+
+.logo-img {
+  max-width: 48mm;
+  max-height: 19mm;
+  object-fit: contain;
+}
+
+.header-center {
+  flex: 1;
+  text-align: center;
+}
+
+.initiative-title {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #0f2b48;
+  text-transform: uppercase;
+  margin-bottom: 1.5mm;
+}
+
+.initiative-subtitle {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 8.5pt;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #c59b27;
+  text-transform: uppercase;
+}
+
+/* Titles */
+.title-section {
+  margin-top: 1mm;
+}
+
+.cert-title {
+  font-family: 'Times New Roman', 'Georgia', serif;
+  font-size: 26pt;
+  font-weight: 700;
+  color: #0f2b48;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 1mm;
+}
+
+.cert-gold-ribbon {
+  display: inline-block;
+  width: 80mm;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, #c59b27, transparent);
+  margin-bottom: 2mm;
+}
+
+.cert-presentation {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #5a6a80;
+  text-transform: uppercase;
+}
+
+/* Recipient Section */
+.recipient-section {
+  margin: 1.5mm 0;
+}
+
+.recipient-name {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 25pt;
+  font-weight: 700;
+  font-style: italic;
+  color: #0f2b48;
+  letter-spacing: 0.5px;
+  margin-bottom: 2mm;
+  max-width: 220mm;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.15;
+  word-wrap: break-word;
+}
+
+.recipient-meta {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 10pt;
+  font-weight: 600;
+  color: #2d3748;
+  letter-spacing: 0.5px;
+}
+
+.recipient-meta span {
+  color: #c59b27;
+  margin: 0 4px;
+}
+
+/* Institution & Achievement Text */
+.body-section {
+  margin: 1.5mm auto;
+  max-width: 230mm;
+  line-height: 1.5;
+}
+
+.college-line {
+  font-family: 'Georgia', serif;
+  font-size: 13pt;
+  font-weight: 700;
+  color: #0f2b48;
+  margin-bottom: 1.5mm;
+}
+
+.achievement-text {
+  font-family: 'Georgia', serif;
+  font-size: 10pt;
+  color: #4a5568;
+  margin-bottom: 2mm;
+}
+
+.course-box {
+  display: inline-block;
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 14pt;
+  font-weight: 700;
+  color: #0f2b48;
+  background: #fdfbf5;
+  border: 1px solid #e2d197;
+  padding: 1.5mm 8mm;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  margin-bottom: 1.5mm;
+}
+
+.company-line {
+  font-family: 'Georgia', serif;
+  font-size: 10.5pt;
+  color: #4a5568;
+}
+
+.company-line strong {
+  color: #0f2b48;
+}
+
+/* Footer & Signatures */
+.cert-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 3mm;
+  margin-top: 1mm;
+}
+
+.footer-item {
+  width: 55mm;
+  text-align: center;
+}
+
+.sig-line {
+  width: 48mm;
+  height: 1px;
+  background-color: #718096;
+  margin: 0 auto 2mm auto;
+}
+
+.sig-title {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: #0f2b48;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sig-subtitle {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 7.5pt;
+  color: #718096;
+}
+
+.seal-box {
+  width: 50mm;
+  text-align: center;
+}
+
+.security-seal {
+  width: 24mm;
+  height: 24mm;
+  margin: 0 auto 1.5mm auto;
+  border-radius: 50%;
+  border: 2px dashed #c59b27;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #faf8f0;
+}
+
+.seal-text-top {
+  font-size: 5.5pt;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 700;
+  color: #0f2b48;
+  letter-spacing: 1px;
+}
+
+.seal-star {
+  color: #c59b27;
+  font-size: 9pt;
+  margin: 0.5mm 0;
+}
+
+.seal-text-bot {
+  font-size: 5.5pt;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 700;
+  color: #c59b27;
+  letter-spacing: 1px;
+}
+
+.cert-id-tag {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 8pt;
+  font-weight: 700;
+  color: #0f2b48;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 1mm 2.5mm;
+  border-radius: 3px;
+  display: inline-block;
+}
