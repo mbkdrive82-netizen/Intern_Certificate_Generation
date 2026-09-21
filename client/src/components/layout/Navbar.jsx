@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { UserCheck, RefreshCw } from 'lucide-react';
+import { UserCheck, RefreshCw, Menu } from 'lucide-react';
 import api from '../../services/api';
 
-const Navbar = ({ title, onRefresh }) => {
+const Navbar = ({ title, onRefresh, onToggleMobileMenu }) => {
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [activeBatch, setActiveBatch] = useState(null);
@@ -50,9 +50,21 @@ const Navbar = ({ title, onRefresh }) => {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs">
-      <div className="flex items-center space-x-3">
-        <h2 className="text-xl font-bold text-slate-850 tracking-tight">{title}</h2>
+    <header className="h-16 bg-white border-b border-slate-200 px-3.5 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+        {/* Mobile Hamburger Drawer Toggle */}
+        <button
+          type="button"
+          onClick={onToggleMobileMenu}
+          className="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 active:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+          title="Open Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">
+          {title}
+        </h2>
       </div>
 
       <div className="flex items-center space-x-3">

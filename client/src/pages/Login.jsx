@@ -106,30 +106,26 @@ const Login = () => {
       </div>
 
       {/* Right Column - Login Form */}
-      <div className="col-span-1 lg:col-span-7 xl:col-span-7 flex flex-col justify-between p-6 sm:p-10 xl:p-16 min-h-screen">
-        {/* Top spacer / mobile brand */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 lg:hidden">
-            <img
-              src="/favicon.png"
-              alt="The SM Groups"
-              className="h-9 w-9 object-contain"
-            />
-            <span className="font-bold text-slate-900 text-sm">TN SKILLS & SM GROUPS</span>
+      <div className="col-span-1 lg:col-span-7 xl:col-span-7 flex flex-col justify-between p-4 sm:p-8 xl:p-16 min-h-screen">
+        {/* Top brand accent indicator on mobile */}
+        <div className="flex items-center justify-between pt-2 lg:pt-0">
+          <div className="lg:hidden flex items-center space-x-2.5">
+            <span className="w-2 h-2 rounded-full bg-red-600"></span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Official Portal</span>
           </div>
           <div></div>
         </div>
 
         {/* Form Container Card */}
-        <div className="w-full max-w-[420px] mx-auto my-auto py-6">
+        <div className="w-full max-w-[420px] mx-auto my-auto py-4 sm:py-6">
           {/* Logo prominently displayed in natural full aspect ratio */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6 sm:mb-8">
             <img
               src="/assets/sm_groups_logo.png"
               alt="THE SM GROUPS"
-              className="h-14 mx-auto object-contain mb-3 drop-shadow-xs"
+              className="h-12 sm:h-14 mx-auto object-contain mb-2.5 drop-shadow-xs"
             />
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Sign In to Your Workspace
             </h1>
             <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -138,7 +134,7 @@ const Login = () => {
           </div>
 
           {/* Form Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-200/60 p-7 sm:p-8">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-200/60 p-5 sm:p-8">
             {error && (
               <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center space-x-2 text-red-700 text-xs font-medium">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -158,7 +154,7 @@ const Login = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter your ID or username"
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-red-600 focus:ring-3 focus:ring-red-500/15 transition-all shadow-2xs"
+                    className="w-full pl-10 pr-4 py-2.5 sm:py-2.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-base sm:text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-red-600 focus:ring-3 focus:ring-red-500/15 transition-all shadow-2xs"
                     required
                   />
                 </div>
@@ -175,13 +171,13 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-red-600 focus:ring-3 focus:ring-red-500/15 transition-all shadow-2xs"
+                    className="w-full pl-10 pr-10 py-2.5 sm:py-2.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-base sm:text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-red-600 focus:ring-3 focus:ring-red-500/15 transition-all shadow-2xs"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer p-1"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -206,7 +202,7 @@ const Login = () => {
             </form>
 
             {/* Quick Demo Logins Helper */}
-            <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+            <div className="mt-5 sm:mt-6 pt-4 border-t border-slate-100 text-center">
               <button
                 type="button"
                 onClick={() => setShowDemo(!showDemo)}
@@ -217,11 +213,11 @@ const Login = () => {
               </button>
 
               {showDemo && (
-                <div className="grid grid-cols-2 gap-2 mt-3 text-left">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-left">
                   <button
                     type="button"
                     onClick={() => fillCredentials('smadmin', 'adminpass')}
-                    className="p-2.5 bg-slate-50 hover:bg-red-50/60 hover:border-red-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
+                    className="p-2 sm:p-2.5 bg-slate-50 hover:bg-red-50/60 hover:border-red-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
                   >
                     <span className="font-bold text-slate-900 group-hover:text-red-600 block">SM Admin</span>
                     <span className="text-[10px] text-slate-500 font-mono">smadmin</span>
@@ -229,7 +225,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => fillCredentials('tnskillsadmin', 'tnskillspass')}
-                    className="p-2.5 bg-slate-50 hover:bg-blue-50/60 hover:border-blue-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
+                    className="p-2 sm:p-2.5 bg-slate-50 hover:bg-blue-50/60 hover:border-blue-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
                   >
                     <span className="font-bold text-slate-900 group-hover:text-blue-600 block">TNSkills Admin</span>
                     <span className="text-[10px] text-slate-500 font-mono">tnskillsadmin</span>
@@ -237,7 +233,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => fillCredentials('abcadmin', 'collegepass')}
-                    className="p-2.5 bg-slate-50 hover:bg-emerald-50/60 hover:border-emerald-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
+                    className="p-2 sm:p-2.5 bg-slate-50 hover:bg-emerald-50/60 hover:border-emerald-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
                   >
                     <span className="font-bold text-slate-900 group-hover:text-emerald-600 block">College Admin</span>
                     <span className="text-[10px] text-slate-500 font-mono">abcadmin</span>
@@ -245,7 +241,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => fillCredentials('aakash.r', 'TNS#bF!mC4')}
-                    className="p-2.5 bg-slate-50 hover:bg-purple-50/60 hover:border-purple-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
+                    className="p-2 sm:p-2.5 bg-slate-50 hover:bg-purple-50/60 hover:border-purple-200 border border-slate-200 rounded-xl text-xs transition-all cursor-pointer group"
                   >
                     <span className="font-bold text-slate-900 group-hover:text-purple-600 block">Student</span>
                     <span className="text-[10px] text-slate-500 font-mono">aakash.r</span>

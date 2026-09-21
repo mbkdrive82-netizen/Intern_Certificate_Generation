@@ -22,15 +22,15 @@ const StatCard = ({ title, value, icon: Icon, color = 'blue', subtext }) => {
   };
 
   return (
-    <div className={`p-5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between ${colorMap[color]}`}>
-      <div>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{title}</p>
-        <h3 className="text-2xl font-black text-slate-900 mt-1">{value !== undefined ? value : '0'}</h3>
-        {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
+    <div className={`p-3.5 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between ${colorMap[color]}`}>
+      <div className="min-w-0 flex-1 pr-2">
+        <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider truncate">{title}</p>
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{value !== undefined ? value : '0'}</h3>
+        {subtext && <p className="text-[11px] text-slate-400 mt-0.5 truncate">{subtext}</p>}
       </div>
       {Icon && (
-        <div className={`p-3 rounded-xl ${iconBgMap[color]}`}>
-          <Icon className="w-5 h-5" />
+        <div className={`p-2 sm:p-3 rounded-xl flex-shrink-0 ${iconBgMap[color]}`}>
+          <Icon className="w-4 h-4 sm:w-5 h-5" />
         </div>
       )}
     </div>

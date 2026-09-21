@@ -101,152 +101,144 @@ const TNSkillsDashboard = () => {
     <AppLayout title="TNSKILLS State Monitoring Dashboard">
       <div className="space-y-6 pb-8">
         {/* 5 Clean, Professional Metric Cards (No Curves, No Animations) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-5 gap-2.5 sm:gap-3.5">
           {/* 1. TOTAL COLLEGES - Sapphire Blue */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-blue-600 p-4.5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-blue-600 p-3 sm:p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Total Colleges
               </span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shadow-2xs flex-shrink-0">
                 <Building2 className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="mt-3">
-              <div className="text-3xl font-black text-slate-900 tracking-tight">
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {stats?.totalColleges || 0}
               </div>
-              <div className="mt-2.5">
-                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-[11px] font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                  <span>Active Institutions</span>
+              <div className="mt-2 sm:mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-[10px] sm:text-[11px] font-semibold truncate max-w-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0"></span>
+                  <span className="truncate">Active Institutions</span>
                 </span>
               </div>
             </div>
           </div>
 
           {/* 2. TOTAL STUDENTS - Emerald Green */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-emerald-600 p-4.5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-emerald-600 p-3 sm:p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Total Students
               </span>
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shadow-2xs flex-shrink-0">
                 <Users className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="mt-3">
-              <div className="text-3xl font-black text-slate-900 tracking-tight">
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {stats?.totalStudents || 0}
               </div>
-              <div className="mt-2.5">
-                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                  <span>Enrolled Interns</span>
+              <div className="mt-2 sm:mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[10px] sm:text-[11px] font-semibold truncate max-w-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 flex-shrink-0"></span>
+                  <span className="truncate">Enrolled Interns</span>
                 </span>
               </div>
             </div>
           </div>
 
           {/* 3. DEPARTMENTS - Indigo / Violet */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-indigo-600 p-4.5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-indigo-600 p-3 sm:p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Departments
               </span>
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shadow-2xs flex-shrink-0">
                 <Layers className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="mt-3">
-              <div className="text-3xl font-black text-slate-900 tracking-tight">
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {stats?.totalDepartments || 5}
               </div>
-              <div className="mt-2.5">
-                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60 text-[11px] font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
-                  <span>Academic Streams</span>
+              <div className="mt-2 sm:mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60 text-[10px] sm:text-[11px] font-semibold truncate max-w-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 flex-shrink-0"></span>
+                  <span className="truncate">Academic Streams</span>
                 </span>
               </div>
             </div>
           </div>
 
           {/* 4. ISSUED CERTS - Crimson Red */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-red-600 p-4.5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-red-600 p-3 sm:p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Issued Certs
               </span>
-              <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center shadow-2xs flex-shrink-0">
                 <Award className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="mt-3">
-              <div className="text-3xl font-black text-slate-900 tracking-tight">
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {stats?.totalCertificates || 0}
               </div>
-              <div className="mt-2.5">
-                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200/60 text-[11px] font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-                  <span>100% Verified</span>
+              <div className="mt-2 sm:mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200/60 text-[10px] sm:text-[11px] font-semibold truncate max-w-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 flex-shrink-0"></span>
+                  <span className="truncate">100% Verified</span>
                 </span>
               </div>
             </div>
           </div>
 
-          {/* 5. PENDING CERTS - Warm Amber */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-amber-500 p-4.5 shadow-xs flex flex-col justify-between">
+          {/* 5. PENDING CERTS - Warm Amber (Full width on mobile to balance grid) */}
+          <div className="col-span-2 sm:col-span-1 bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-amber-500 p-3 sm:p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Pending Certs
               </span>
-              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shadow-2xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shadow-2xs flex-shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="mt-3">
-              <div className="text-3xl font-black text-slate-900 tracking-tight">
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {stats?.certificatesPending || 0}
               </div>
-              <div className="mt-2.5">
-                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                  <span>None Pending</span>
+              <div className="mt-2 sm:mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 text-[10px] sm:text-[11px] font-semibold truncate max-w-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>
+                  <span className="truncate">None Pending</span>
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Colleges & Departments Section */}
-        <div className="space-y-4 pt-2">
-          {/* Breadcrumbs / View Title Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+        {/* Dynamic Section: Colleges Listing OR Departments in Selected College */}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs">
             <div>
               {selectedCollege ? (
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500">
-                    <button
-                      onClick={() => setSelectedCollege(null)}
-                      className="text-red-600 hover:text-red-700 hover:underline cursor-pointer font-bold"
-                    >
-                      Colleges
-                    </button>
-                    <span>›</span>
-                    <span className="text-slate-800 font-bold uppercase">{selectedCollege.name}</span>
-                  </div>
-                  <h2 className="text-lg font-black tracking-tight text-slate-900">
-                    Departments in {selectedCollege.name} ({selectedCollege.departments?.length || 0})
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                    Departments in {selectedCollege.name}
                   </h2>
+                  <p className="text-xs text-slate-500 font-semibold">
+                    Click a department below to view student records
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-0.5">
-                  <h2 className="text-xl font-black tracking-tight text-slate-900">
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                     Colleges
                   </h2>
                   <p className="text-xs text-slate-500 font-semibold">
@@ -256,7 +248,7 @@ const TNSkillsDashboard = () => {
               )}
             </div>
 
-            <div className="flex items-center space-x-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               {selectedCollege && (
                 <button
                   onClick={() => setSelectedCollege(null)}

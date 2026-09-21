@@ -43,7 +43,7 @@ const AdminDashboard = () => {
   return (
     <AppLayout title="SM GROUPS Master Dashboard">
       {/* Overview Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
         <StatCard title="Total Colleges" value={stats?.totalColleges} icon={Building2} color="blue" />
         <StatCard title="Total Students" value={stats?.totalStudents} icon={Users} color="emerald" />
         <StatCard title="Total Certs" value={stats?.totalCertificates} icon={Award} color="amber" />
