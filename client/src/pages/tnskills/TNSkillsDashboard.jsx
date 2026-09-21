@@ -100,209 +100,124 @@ const TNSkillsDashboard = () => {
   return (
     <AppLayout title="TNSKILLS State Monitoring Dashboard">
       <div className="space-y-6 pb-8">
-        {/* 5 Professional Colorful Metric Cards with Curve / Sparkline Trend Design */}
+        {/* 5 Clean, Professional Metric Cards (No Curves, No Animations) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3.5">
           {/* 1. TOTAL COLLEGES - Sapphire Blue */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-blue-600 p-4.5 shadow-xs hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col justify-between group overflow-hidden relative">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-blue-600 p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-blue-600 transition-colors">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Total Colleges
               </span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shadow-2xs">
                 <Building2 className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="flex items-end justify-between mt-3">
-              <div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">
-                  {stats?.totalColleges || 0}
-                </div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-[11px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                    <span>Active Institutions</span>
-                  </span>
-                </div>
+            <div className="mt-3">
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {stats?.totalColleges || 0}
               </div>
-
-              {/* Dynamic Trendline Curve (Marked by user) */}
-              <div className="flex-shrink-0 -mb-1 -mr-1">
-                <svg className="w-20 h-10 overflow-visible" viewBox="0 0 100 40">
-                  <defs>
-                    <linearGradient id="curve-blue" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 0,32 Q 35,30 60,18 T 100,6 L 100,40 L 0,40 Z" fill="url(#curve-blue)" />
-                  <path d="M 0,32 Q 35,30 60,18 T 100,6" fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="100" cy="6" r="3" fill="#2563EB" />
-                </svg>
+              <div className="mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                  <span>Active Institutions</span>
+                </span>
               </div>
             </div>
           </div>
 
           {/* 2. TOTAL STUDENTS - Emerald Green */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-emerald-600 p-4.5 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-200 flex flex-col justify-between group overflow-hidden relative">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-emerald-600 p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-emerald-600 transition-colors">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Total Students
               </span>
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shadow-2xs">
                 <Users className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="flex items-end justify-between mt-3">
-              <div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">
-                  {stats?.totalStudents || 0}
-                </div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                    <span>Enrolled Interns</span>
-                  </span>
-                </div>
+            <div className="mt-3">
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {stats?.totalStudents || 0}
               </div>
-
-              {/* Dynamic Trendline Curve */}
-              <div className="flex-shrink-0 -mb-1 -mr-1">
-                <svg className="w-20 h-10 overflow-visible" viewBox="0 0 100 40">
-                  <defs>
-                    <linearGradient id="curve-emerald" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#059669" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#059669" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 0,34 Q 30,28 60,15 T 100,5 L 100,40 L 0,40 Z" fill="url(#curve-emerald)" />
-                  <path d="M 0,34 Q 30,28 60,15 T 100,5" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="100" cy="5" r="3" fill="#059669" />
-                </svg>
+              <div className="mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                  <span>Enrolled Interns</span>
+                </span>
               </div>
             </div>
           </div>
 
           {/* 3. DEPARTMENTS - Indigo / Violet */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-indigo-600 p-4.5 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 flex flex-col justify-between group overflow-hidden relative">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-indigo-600 p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-indigo-600 transition-colors">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Departments
               </span>
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shadow-2xs">
                 <Layers className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="flex items-end justify-between mt-3">
-              <div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">
-                  {stats?.totalDepartments || 5}
-                </div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60 text-[11px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
-                    <span>Academic Streams</span>
-                  </span>
-                </div>
+            <div className="mt-3">
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {stats?.totalDepartments || 5}
               </div>
-
-              {/* Dynamic Trendline Curve */}
-              <div className="flex-shrink-0 -mb-1 -mr-1">
-                <svg className="w-20 h-10 overflow-visible" viewBox="0 0 100 40">
-                  <defs>
-                    <linearGradient id="curve-indigo" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 0,30 Q 30,35 60,20 T 100,8 L 100,40 L 0,40 Z" fill="url(#curve-indigo)" />
-                  <path d="M 0,30 Q 30,35 60,20 T 100,8" fill="none" stroke="#4F46E5" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="100" cy="8" r="3" fill="#4F46E5" />
-                </svg>
+              <div className="mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60 text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                  <span>Academic Streams</span>
+                </span>
               </div>
             </div>
           </div>
 
           {/* 4. ISSUED CERTS - Crimson Red */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-red-600 p-4.5 shadow-xs hover:shadow-md hover:border-red-300 transition-all duration-200 flex flex-col justify-between group overflow-hidden relative">
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-red-600 p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-red-600 transition-colors">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Issued Certs
               </span>
-              <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center shadow-2xs">
                 <Award className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="flex items-end justify-between mt-3">
-              <div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">
-                  {stats?.totalCertificates || 0}
-                </div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200/60 text-[11px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-                    <span>100% Verified</span>
-                  </span>
-                </div>
+            <div className="mt-3">
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {stats?.totalCertificates || 0}
               </div>
-
-              {/* Dynamic Trendline Curve */}
-              <div className="flex-shrink-0 -mb-1 -mr-1">
-                <svg className="w-20 h-10 overflow-visible" viewBox="0 0 100 40">
-                  <defs>
-                    <linearGradient id="curve-red" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#DC2626" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#DC2626" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 0,35 Q 35,32 65,16 T 100,4 L 100,40 L 0,40 Z" fill="url(#curve-red)" />
-                  <path d="M 0,35 Q 35,32 65,16 T 100,4" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="100" cy="4" r="3" fill="#DC2626" />
-                </svg>
+              <div className="mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200/60 text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                  <span>100% Verified</span>
+                </span>
               </div>
             </div>
           </div>
 
-          {/* 5. PENDING CERTS - Warm Amber (Arch curve matching user mark) */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-amber-500 p-4.5 shadow-xs hover:shadow-md hover:border-amber-300 transition-all duration-200 flex flex-col justify-between group overflow-hidden relative">
+          {/* 5. PENDING CERTS - Warm Amber */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 border-t-[3px] border-t-amber-500 p-4.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-amber-600 transition-colors">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Pending Certs
               </span>
-              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shadow-2xs">
                 <Clock className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="flex items-end justify-between mt-3">
-              <div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight">
-                  {stats?.certificatesPending || 0}
-                </div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    <span>None Pending</span>
-                  </span>
-                </div>
+            <div className="mt-3">
+              <div className="text-3xl font-black text-slate-900 tracking-tight">
+                {stats?.certificatesPending || 0}
               </div>
-
-              {/* Arch curve matching user mark */}
-              <div className="flex-shrink-0 -mb-1 -mr-1">
-                <svg className="w-20 h-10 overflow-visible" viewBox="0 0 100 40">
-                  <defs>
-                    <linearGradient id="curve-amber" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#D97706" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#D97706" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 0,25 Q 40,8 70,12 T 100,30 L 100,40 L 0,40 Z" fill="url(#curve-amber)" />
-                  <path d="M 0,25 Q 40,8 70,12 T 100,30" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="100" cy="30" r="3" fill="#D97706" />
-                </svg>
+              <div className="mt-2.5">
+                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  <span>None Pending</span>
+                </span>
               </div>
             </div>
           </div>

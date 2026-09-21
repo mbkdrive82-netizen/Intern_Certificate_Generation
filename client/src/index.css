@@ -2,17 +2,18 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-800 min-h-screen font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    @apply bg-slate-50 text-slate-800 min-h-screen antialiased;
+  }
+
+  /* Keep input background crisp white on browser autofill */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #0f172a !important;
   }
 }
 
-.sm-enterprise-pattern {
-  background-color: #f8fafc;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    rgba(226, 232, 240, 0.55),
-    rgba(226, 232, 240, 0.55) 1.5px,
-    transparent 1.5px,
-    transparent 15px
-  );
-}
+
