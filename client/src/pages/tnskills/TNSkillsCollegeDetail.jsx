@@ -3,9 +3,8 @@ import { useParams } from 'react-router-dom';
 import AppLayout from '../../components/layout/AppLayout';
 import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
-import Modal from '../../components/ui/Modal';
 import api from '../../services/api';
-import { Building2, Layers, Search, Filter, Eye, Download, CheckCircle2 } from 'lucide-react';
+import { Building2, Layers, Search, Filter, CheckCircle2, Clock } from 'lucide-react';
 
 const TNSkillsCollegeDetail = () => {
   const { id: collegeId } = useParams();
@@ -19,9 +18,6 @@ const TNSkillsCollegeDetail = () => {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
-
-  // Preview Modal
-  const [previewStudent, setPreviewStudent] = useState(null);
 
   useEffect(() => {
     fetchCollegeDetails();
@@ -144,7 +140,7 @@ const TNSkillsCollegeDetail = () => {
                 <th className="px-4 py-3">Department / Year</th>
                 <th className="px-4 py-3">Course (Training)</th>
                 <th className="px-4 py-3">Course Status</th>
-                <th className="px-4 py-3">Certificate Actions</th>
+                <th className="px-4 py-3">Certificate Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -173,30 +169,15 @@ const TNSkillsCollegeDetail = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {st.certificateStatus === 'GENERATED' && st.certificateFilePath ? (
-                        <div className="flex items-center space-x-1.5">
-                          {st.certificatePreviewPath && (
-                            <button
-                              onClick={() => setPreviewStudent(st)}
-                              className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-colors"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View</span>
-                            </button>
-                          )}
-                          <a
-                            href={`/${st.certificateFilePath}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Download</span>
-                          </a>
-                        </div>
+                      {st.certificateStatus === 'GENERATED' ? (
+                        <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-bold text-xs">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Issued</span>
+                        </span>
                       ) : (
-                        <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          Pending Issuance
+                        <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200/80 font-semibold text-xs">
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Pending</span>
                         </span>
                       )}
                     </td>
@@ -220,33 +201,6 @@ const TNSkillsCollegeDetail = () => {
           onPageChange={(p) => setPage(p)}
         />
       </div>
-
-      {/* View Certificate Preview Modal for TNSKILLS */}
-      <Modal isOpen={!!previewStudent} onClose={() => setPreviewStudent(null)} title={`Certificate - ${previewStudent?.name} (${previewStudent?.studentId})`}>
-        {previewStudent && (
-          <div className="space-y-4">
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-              <img
-                src={`/${previewStudent.certificatePreviewPath}`}
-                alt="Rendered Certificate"
-                className="w-full h-auto block"
-              />
-            </div>
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs font-mono text-slate-500">ID: {previewStudent.certificateId}</span>
-              <a
-                href={`/${previewStudent.certificateFilePath}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Official PDF</span>
-              </a>
-            </div>
-          </div>
-        )}
-      </Modal>
     </AppLayout>
   );
 };
