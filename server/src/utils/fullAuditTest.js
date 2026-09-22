@@ -131,6 +131,10 @@ async function auditAllFlows() {
   const smLogoCerts = fs.existsSync(path.resolve(__dirname, '../certificates/assets/sm_groups_logo.png'));
   assert(smLogoPublic && smLogoCerts, 'Main SM Groups Logo Files Exist', 'Public & Certificate Assets Verified');
 
+  const tnSkillLogoPublic = fs.existsSync(path.resolve(__dirname, '../../public/assets/tnskill_logo.png'));
+  const tnSkillLogoCerts = fs.existsSync(path.resolve(__dirname, '../certificates/assets/tnskill_logo.png'));
+  assert(tnSkillLogoPublic && tnSkillLogoCerts, 'TNSkill Master Logo Files Exist', 'Top-Center Certificate Logo Verified');
+
   const certTplHtml = fs.existsSync(path.resolve(__dirname, '../certificates/templates/certificateTemplate.html'));
   const certTplCss = fs.existsSync(path.resolve(__dirname, '../certificates/templates/certificateTemplate.css'));
   assert(certTplHtml && certTplCss, 'Certificate Template HTML/CSS Files Exist', 'Template verified');

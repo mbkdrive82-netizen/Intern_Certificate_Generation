@@ -1,3 +1,4 @@
+
 # TN SKILLS – STUDENT & CERTIFICATE MANAGEMENT SYSTEM
 
 A complete, production-ready, database-backed web application built for managing colleges, student directories, department-wise tracking, Excel bulk imports, student credentials, dynamic certificate templates, and automated PDF certificate generation with strict role-based authorization.

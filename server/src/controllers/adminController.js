@@ -181,6 +181,51 @@ const updateCollege = async (req, res, next) => {
   }
 };
 
+// POST /api/admin/colleges/:id/reset-credentials
+const resetCollegeCredentials = async (req, res, next) => {
+  try {
+    const college = await College.findById(req.params.id).populate('adminUserId', 'username');
+
+    if (!college) {
+      return res.status(404).json({ success: false, message: 'College not found' });
+    }
+
+    // Generate new password
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!';
+    let newPassword = '';
+    for (let i = 0; i < 10; i++) {
+      newPassword += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    let adminUser = college.adminUserId;
+
+    if (!adminUser) {
+      // Create new admin user if none exists
+      const username = college.code.toLowerCase() + '_admin';
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      adminUser = new User({ username, passwordHash, role: 'COLLEGE_ADMIN', collegeId: college._id });
+      await adminUser.save();
+      college.adminUserId = adminUser._id;
+      await college.save();
+    } else {
+      // Update existing user's password
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      await User.findByIdAndUpdate(adminUser._id, { passwordHash });
+    }
+
+    res.json({
+      success: true,
+      credentials: {
+        collegeName: college.name,
+        username: adminUser.username || (college.code.toLowerCase() + '_admin'),
+        password: newPassword
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET /api/admin/students
 const getStudents = async (req, res, next) => {
   try {
@@ -289,7 +334,7 @@ const uploadStudentsExcel = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please upload an Excel file (.xlsx or .xls)' });
     }
 
-    const createMissingColleges = req.body.createMissingColleges === 'true' || req.body.createMissingColleges === true;
+    const createMissingColleges = req.body.createMissingColleges !== 'false' && req.body.createMissingColleges !== false;
 
     const result = await processStudentExcel(req.file.path, { createMissingColleges });
 
@@ -337,18 +382,50 @@ const getCompanies = async (req, res, next) => {
 
 const createCompany = async (req, res, next) => {
   try {
-    const { name } = req.body;
+    const { name, templateStyle } = req.body;
     let logoPath = '';
-    if (req.file) {
-      logoPath = `uploads/${path.basename(req.file.path)}`;
+    let bgImagePath = '';
+
+    const logoFile = req.files?.['logo']?.[0] || (req.file?.fieldname === 'logo' ? req.file : null);
+    const bgImageFile = req.files?.['bgImage']?.[0] || (req.file?.fieldname === 'bgImage' ? req.file : null);
+
+    if (logoFile) {
+      logoPath = `uploads/${path.basename(logoFile.path)}`;
+    }
+    if (bgImageFile) {
+      bgImagePath = `uploads/${path.basename(bgImageFile.path)}`;
     }
 
     if (!name) {
       return res.status(400).json({ success: false, message: 'Company name is required' });
     }
 
-    const company = await Company.create({ name: name.trim(), logoPath });
-    res.status(201).json({ success: true, message: 'Company created', company });
+    const trimmedName = name.trim();
+
+    // Check if company already exists
+    const existing = await Company.findOne({
+      name: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+    });
+
+    if (existing) {
+      if (logoPath) existing.logoPath = logoPath;
+      if (bgImagePath) existing.bgImagePath = bgImagePath;
+      if (templateStyle) existing.templateStyle = templateStyle;
+      await existing.save();
+      return res.status(200).json({
+        success: true,
+        message: `Company '${existing.name}' already existed — settings updated successfully!`,
+        company: existing
+      });
+    }
+
+    const company = await Company.create({
+      name: trimmedName,
+      logoPath,
+      bgImagePath,
+      templateStyle: templateStyle || 'default'
+    });
+    res.status(201).json({ success: true, message: 'Company created successfully', company });
   } catch (error) {
     next(error);
   }
@@ -357,11 +434,19 @@ const createCompany = async (req, res, next) => {
 const updateCompany = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, templateStyle } = req.body;
     const updateData = {};
     if (name) updateData.name = name.trim();
-    if (req.file) {
-      updateData.logoPath = `uploads/${path.basename(req.file.path)}`;
+    if (templateStyle) updateData.templateStyle = templateStyle;
+
+    const logoFile = req.files?.['logo']?.[0] || (req.file?.fieldname === 'logo' ? req.file : null);
+    const bgImageFile = req.files?.['bgImage']?.[0] || (req.file?.fieldname === 'bgImage' ? req.file : null);
+
+    if (logoFile) {
+      updateData.logoPath = `uploads/${path.basename(logoFile.path)}`;
+    }
+    if (bgImageFile) {
+      updateData.bgImagePath = `uploads/${path.basename(bgImageFile.path)}`;
     }
 
     const company = await Company.findByIdAndUpdate(id, updateData, { new: true });
@@ -369,6 +454,112 @@ const updateCompany = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Company not found' });
     }
     res.json({ success: true, message: 'Company updated successfully', company });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCompany = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    // Clean up uploaded logo if not an asset
+    if (company.logoPath && !company.logoPath.startsWith('assets/')) {
+      const fullLogoPath = path.join(__dirname, '../../', company.logoPath);
+      if (fs.existsSync(fullLogoPath)) {
+        try { fs.unlinkSync(fullLogoPath); } catch (e) {}
+      }
+    }
+
+    // Clean up uploaded background image if not an asset
+    if (company.bgImagePath && !company.bgImagePath.startsWith('assets/')) {
+      const fullBgPath = path.join(__dirname, '../../', company.bgImagePath);
+      if (fs.existsSync(fullBgPath)) {
+        try { fs.unlinkSync(fullBgPath); } catch (e) {}
+      }
+    }
+
+    await Company.findByIdAndDelete(id);
+    res.json({ success: true, message: `Company '${company.name}' deleted successfully` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCompanyLogo = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    if (company.logoPath && !company.logoPath.startsWith('assets/')) {
+      const fullLogoPath = path.join(__dirname, '../../', company.logoPath);
+      if (fs.existsSync(fullLogoPath)) {
+        try { fs.unlinkSync(fullLogoPath); } catch (e) {}
+      }
+    }
+
+    company.logoPath = '';
+    await company.save();
+    res.json({ success: true, message: `Logo removed for '${company.name}'`, company });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCompanyBgImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findById(id);
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    if (company.bgImagePath && !company.bgImagePath.startsWith('assets/')) {
+      const fullBgPath = path.join(__dirname, '../../', company.bgImagePath);
+      if (fs.existsSync(fullBgPath)) {
+        try { fs.unlinkSync(fullBgPath); } catch (e) {}
+      }
+    }
+
+    company.bgImagePath = '';
+    await company.save();
+    res.json({ success: true, message: `Custom certificate background removed for '${company.name}' (reverted to default)`, company });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/admin/certificates/clear-all
+const clearAllCertificates = async (req, res, next) => {
+  try {
+    await Certificate.deleteMany({});
+    
+    // Also clean up certificate PDFs and previews from disk
+    const certDir = path.join(__dirname, '../../certificates');
+    const previewDir = path.join(certDir, 'previews');
+    
+    if (fs.existsSync(certDir)) {
+      const pdfFiles = fs.readdirSync(certDir).filter(f => f.endsWith('.pdf'));
+      pdfFiles.forEach(f => {
+        try { fs.unlinkSync(path.join(certDir, f)); } catch (e) {}
+      });
+    }
+    
+    if (fs.existsSync(previewDir)) {
+      const pngFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.png'));
+      pngFiles.forEach(f => {
+        try { fs.unlinkSync(path.join(previewDir, f)); } catch (e) {}
+      });
+    }
+
+    res.json({ success: true, message: 'All student certificates and preview files removed successfully!' });
   } catch (error) {
     next(error);
   }
@@ -488,19 +679,73 @@ const getBulkGenerationProgress = (req, res) => {
 // GET /api/admin/certificates
 const getCertificates = async (req, res, next) => {
   try {
-    const { status, company, page = 1, limit = 20 } = req.query;
-    const query = {};
-    if (status) query.status = status;
+    const {
+      status,
+      company,
+      collegeId,
+      department,
+      year,
+      course,
+      search,
+      page = 1,
+      limit = 20
+    } = req.query;
 
-    if (company) {
-      const matchingStudents = await Student.find({ company: new RegExp(`^${company.trim()}$`, 'i') }).select('_id');
-      query.studentId = { $in: matchingStudents.map(s => s._id) };
+    const certQuery = {};
+    if (status && status !== 'ALL') certQuery.status = status;
+
+    const studentQuery = {};
+    let filterStudents = false;
+
+    if (collegeId && collegeId !== 'ALL') {
+      studentQuery.collegeId = collegeId;
+      filterStudents = true;
+    }
+    if (department && department !== 'ALL') {
+      studentQuery.department = new RegExp(`^${department.trim()}$`, 'i');
+      filterStudents = true;
+    }
+    if (year && year !== 'ALL') {
+      studentQuery.year = year.trim();
+      filterStudents = true;
+    }
+    if (company && company !== 'ALL') {
+      studentQuery.company = new RegExp(`^${company.trim()}$`, 'i');
+      filterStudents = true;
+    }
+    if (course && course !== 'ALL') {
+      studentQuery.course = new RegExp(`^${course.trim()}$`, 'i');
+      filterStudents = true;
+    }
+
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const matchedStudents = await Student.find({
+        ...studentQuery,
+        $or: [
+          { name: searchRegex },
+          { studentId: searchRegex },
+          { department: searchRegex },
+          { course: searchRegex }
+        ]
+      }).select('_id');
+
+      const studentIds = matchedStudents.map(s => s._id);
+
+      certQuery.$or = [
+        { certificateId: searchRegex },
+        { certificateNumber: searchRegex },
+        { studentId: { $in: studentIds } }
+      ];
+    } else if (filterStudents) {
+      const matchingStudents = await Student.find(studentQuery).select('_id');
+      certQuery.studentId = { $in: matchingStudents.map(s => s._id) };
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Certificate.countDocuments(query);
+    const total = await Certificate.countDocuments(certQuery);
 
-    const certificates = await Certificate.find(query)
+    const certificates = await Certificate.find(certQuery)
       .populate({
         path: 'studentId',
         populate: { path: 'collegeId', select: 'name code' }
@@ -581,6 +826,7 @@ module.exports = {
   getColleges,
   createCollege,
   updateCollege,
+  resetCollegeCredentials,
   getStudents,
   getStudentById,
   uploadStudentsExcel,
@@ -589,6 +835,10 @@ module.exports = {
   getCompanies,
   createCompany,
   updateCompany,
+  deleteCompany,
+  deleteCompanyLogo,
+  deleteCompanyBgImage,
+  clearAllCertificates,
   getCourses,
   createCourse,
   getCertificateTemplates,

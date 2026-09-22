@@ -15,11 +15,32 @@ const fileToDataUri = (filePath) => {
  * (Satisfies Section 94)
  */
 const buildCertificateData = (student, college, company, course, certificateId) => {
+  const currentYear = new Date().getFullYear();
   const certDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+
+  const academicYear = (student.year && student.year.includes('-'))
+    ? student.year
+    : `${currentYear - 1}–${currentYear}`;
+
+  const compName = company ? company.name : (student.company || 'SRITECH');
+  const compStyle = (company && company.templateStyle) ? company.templateStyle : '';
+
+  let companyTheme = 'theme-sritech';
+  if (compStyle === 'sritech' || /sri\s*tech/i.test(compName)) {
+    companyTheme = 'theme-sritech';
+  } else if (compStyle === 'mbk' || /mbk/i.test(compName)) {
+    companyTheme = 'theme-mbk';
+  } else if (compStyle === 'venthulir' || /venthulir/i.test(compName)) {
+    companyTheme = 'theme-venthulir';
+  } else if (compStyle === 'pavech' || /pavech/i.test(compName)) {
+    companyTheme = 'theme-pavech';
+  } else if (compStyle && compStyle !== 'default') {
+    companyTheme = `theme-${compStyle.toLowerCase()}`;
+  }
 
   return {
     studentName: student.name || 'Student',
@@ -27,13 +48,17 @@ const buildCertificateData = (student, college, company, course, certificateId) 
     collegeName: college ? college.name : (student.collegeId?.name || 'Affiliated College'),
     department: student.department || 'General',
     year: student.year || 'III',
-    companyName: company ? company.name : (student.company || 'Partner Enterprise'),
+    academicYear: academicYear,
+    companyName: compName,
     courseName: course ? course.name : (student.course || 'Advanced Technical Training'),
-    subCompanyName: company ? company.name : (student.company || 'Partner Enterprise'),
+    subCompanyName: compName,
+    companyTheme: companyTheme,
     certificateId: certificateId,
     certificateDate: certDate,
+    tnSkillLogoPath: '', // Common TNSkill master logo for top center
     smLogoPath: '', // Provided from template if configured
-    subLogoPath: company ? company.logoPath : ''
+    subLogoPath: company ? company.logoPath : '',
+    bgImagePath: company ? company.bgImagePath : ''
   };
 };
 
@@ -47,6 +72,12 @@ const renderCertificateHtml = (data) => {
   let html = fs.readFileSync(htmlPath, 'utf8');
   const css = fs.readFileSync(cssPath, 'utf8');
 
+  // Fixed TNSkill Logo (Common for all certificates top center)
+  const fixedTnSkillLogoPath = path.join(__dirname, '../assets/tnskill_logo.png');
+  const actualTnSkillLogoPath = (data.tnSkillLogoPath && fs.existsSync(data.tnSkillLogoPath))
+    ? data.tnSkillLogoPath
+    : (fs.existsSync(fixedTnSkillLogoPath) ? fixedTnSkillLogoPath : '');
+
   // Fixed SM GROUPS Logo (Provided by Admin as permanent master logo)
   const fixedSmLogoPath = path.join(__dirname, '../assets/sm_groups_logo.png');
   const actualSmLogoPath = (data.smLogoPath && fs.existsSync(data.smLogoPath))
@@ -54,11 +85,13 @@ const renderCertificateHtml = (data) => {
     : (fs.existsSync(fixedSmLogoPath) ? fixedSmLogoPath : '');
 
   // Convert logos to base64 Data URIs
+  const tnSkillLogoDataUri = actualTnSkillLogoPath ? fileToDataUri(actualTnSkillLogoPath) : '';
   const smLogoDataUri = actualSmLogoPath ? fileToDataUri(actualSmLogoPath) : '';
   const subLogoDataUri = data.subLogoPath ? fileToDataUri(data.subLogoPath) : '';
 
-  // Inject CSS
+  // Inject CSS and Theme
   html = html.replace('{{certificate_styles}}', css);
+  html = html.replace(/{{company_theme}}/g, data.companyTheme || 'theme-sritech');
 
   // Replace placeholders
   html = html.replace(/{{student_name}}/g, data.studentName);
@@ -71,8 +104,44 @@ const renderCertificateHtml = (data) => {
   html = html.replace(/{{sub_company_name}}/g, data.subCompanyName);
   html = html.replace(/{{certificate_id}}/g, data.certificateId);
   html = html.replace(/{{certificate_date}}/g, data.certificateDate);
+  html = html.replace(/{{academic_year}}/g, data.academicYear || '2025–2026');
 
-  // Logo conditionals (Sub Company on Top-Left, SM Groups on Top-Right)
+  // Authentic TNSDC Signature on the Left (from official government sample)
+  const tnsdcSigPath = path.join(__dirname, '../assets/tnsdc_signature.png');
+  const tnsdcSigDataUri = fileToDataUri(tnsdcSigPath);
+  html = html.replace(/{{tnsdc_sig_src}}/g, tnsdcSigDataUri);
+
+  // Authentic Executive / Authorized Signatory Signature on the Right
+  const authSigPath = path.join(__dirname, '../assets/authorized_signatory.png');
+  const authSigDataUri = fileToDataUri(authSigPath);
+  html = html.replace(/{{authorized_sig_src}}/g, authSigDataUri);
+
+  // Official Certificate Background Image (Sub-Company custom background or official default)
+  const defaultBgPath = path.join(__dirname, '../assets/official_cert_bg.png');
+  let chosenBgPath = defaultBgPath;
+  if (data.bgImagePath) {
+    const customBg = path.isAbsolute(data.bgImagePath)
+      ? data.bgImagePath
+      : path.join(__dirname, '../../../', data.bgImagePath);
+    if (fs.existsSync(customBg)) {
+      chosenBgPath = customBg;
+    }
+  }
+  const bgImageDataUri = fileToDataUri(chosenBgPath);
+  html = html.replace(/{{bg_image_src}}/g, bgImageDataUri);
+
+  // Logo conditionals:
+  // 1. TNSkill Master Logo (Top-Center - Common for all certificates)
+  if (tnSkillLogoDataUri) {
+    html = html.replace('{{#if_tnskill_logo}}', '');
+    html = html.replace('{{tnskill_logo_src}}', tnSkillLogoDataUri);
+    html = html.replace(/{{else_tnskill_logo}}[\s\S]*?{{\/if_tnskill_logo}}/, '');
+  } else {
+    html = html.replace(/{{#if_tnskill_logo}}[\s\S]*?{{else_tnskill_logo}}/, '');
+    html = html.replace('{{/if_tnskill_logo}}', '');
+  }
+
+  // 2. Sub Company on Top-Left
   if (subLogoDataUri) {
     html = html.replace('{{#if_sub_logo}}', '');
     html = html.replace('{{sub_logo_src}}', subLogoDataUri);

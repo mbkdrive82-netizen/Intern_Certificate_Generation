@@ -36,6 +36,35 @@ app.use('/api/tnskills', tnskillsRoutes);
 app.use('/api/college', collegeRoutes);
 app.use('/api/student', studentRoutes);
 
+// Root endpoint - API Status & Frontend Link
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>TN SKILLS Backend API</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+          .card { background: #1e293b; padding: 2.5rem; border-radius: 1rem; border: 1px solid #334155; text-align: center; max-width: 480px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+          h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #38bdf8; }
+          p { color: #94a3b8; font-size: 0.95rem; line-height: 1.5; }
+          .badge { display: inline-block; background: #065f46; color: #34d399; font-weight: bold; font-size: 0.8rem; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 1.25rem; }
+          a.btn { display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: bold; font-size: 0.9rem; transition: background 0.2s; margin-top: 1rem; }
+          a.btn:hover { background: #1d4ed8; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <span class="badge">● API Online (Port 5000)</span>
+          <h1>TN SKILLS Backend API</h1>
+          <p>The backend server is running and ready. The web application interface is hosted on port 3000.</p>
+          <a href="http://localhost:3000" class="btn">Open Web Application (localhost:3000) →</a>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'TN SKILLS Backend API is running smoothly' });

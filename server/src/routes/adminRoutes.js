@@ -7,6 +7,7 @@ const {
   getColleges,
   createCollege,
   updateCollege,
+  resetCollegeCredentials,
   getStudents,
   getStudentById,
   uploadStudentsExcel,
@@ -15,6 +16,10 @@ const {
   getCompanies,
   createCompany,
   updateCompany,
+  deleteCompany,
+  deleteCompanyLogo,
+  deleteCompanyBgImage,
+  clearAllCertificates,
   getCourses,
   createCourse,
   getCertificateTemplates,
@@ -36,6 +41,7 @@ router.get('/dashboard', getDashboard);
 router.get('/colleges', getColleges);
 router.post('/colleges', createCollege);
 router.put('/colleges/:id', updateCollege);
+router.post('/colleges/:id/reset-credentials', resetCollegeCredentials);
 
 // Students & Excel Upload
 router.get('/students', getStudents);
@@ -48,10 +54,27 @@ router.post('/students/upload', upload.single('excelFile'), uploadStudentsExcel)
 router.get('/sm-logo', getSmLogo);
 router.post('/sm-logo', upload.single('smLogo'), uploadSmLogo);
 
-// Companies
+// Companies (Sub-Companies with Logo and Custom Background Image)
 router.get('/companies', getCompanies);
-router.post('/companies', upload.single('logo'), createCompany);
-router.put('/companies/:id', upload.single('logo'), updateCompany);
+router.post(
+  '/companies',
+  upload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'bgImage', maxCount: 1 }
+  ]),
+  createCompany
+);
+router.put(
+  '/companies/:id',
+  upload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'bgImage', maxCount: 1 }
+  ]),
+  updateCompany
+);
+router.delete('/companies/:id', deleteCompany);
+router.delete('/companies/:id/logo', deleteCompanyLogo);
+router.delete('/companies/:id/bg-image', deleteCompanyBgImage);
 
 // Courses
 router.get('/courses', getCourses);
@@ -73,5 +96,6 @@ router.post('/certificates/generate', generateSingleCertificate);
 router.post('/certificates/generate-bulk', generateBulkCertificatesController);
 router.get('/certificates/bulk-progress', getBulkGenerationProgress);
 router.get('/certificates', getCertificates);
+router.delete('/certificates/clear-all', clearAllCertificates);
 
 module.exports = router;

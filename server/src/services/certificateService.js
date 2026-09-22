@@ -82,13 +82,21 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
   // 5. Build certificate data object
   const certData = buildCertificateData(student, student.collegeId, company, course, certificateId);
 
+  // Fetch TNSkill Master Logo: common for all certificates top center
+  const defaultFixedTnSkillLogo = path.join(__dirname, '../certificates/assets/tnskill_logo.png');
+  certData.tnSkillLogoPath = defaultFixedTnSkillLogo;
+
   // Fetch SM GROUPS logo: default to permanent fixed logo, or setting if present
   const defaultFixedSmLogo = path.join(__dirname, '../certificates/assets/sm_groups_logo.png');
   certData.smLogoPath = defaultFixedSmLogo;
 
   const Setting = require('../models/Setting');
-  const smLogoSetting = await Setting.findOne({ key: 'sm_groups_logo' });
+  const tnSkillSetting = await Setting.findOne({ key: 'tnskill_logo' });
+  if (tnSkillSetting && tnSkillSetting.value && fs.existsSync(tnSkillSetting.value)) {
+    certData.tnSkillLogoPath = tnSkillSetting.value;
+  }
 
+  const smLogoSetting = await Setting.findOne({ key: 'sm_groups_logo' });
   if (smLogoSetting && smLogoSetting.value && fs.existsSync(smLogoSetting.value)) {
     certData.smLogoPath = smLogoSetting.value;
   } else if (template && template.smLogoPath && fs.existsSync(template.smLogoPath)) {
@@ -98,6 +106,11 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
   // Company logo (sub-company logo on top left)
   if (company && company.logoPath) {
     certData.subLogoPath = company.logoPath;
+  }
+
+  // Company custom background image (if uploaded for this sub-company)
+  if (company && company.bgImagePath) {
+    certData.bgImagePath = company.bgImagePath;
   }
 
   // 6. Render HTML

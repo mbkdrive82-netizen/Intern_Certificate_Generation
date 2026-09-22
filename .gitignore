@@ -18,9 +18,9 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
-# Generated PDF certificates (preserve directory structure)
-server/certificates/*.pdf
-server/uploads/temp/*
+# Generated certificates & uploaded temp files
+server/certificates/
+server/uploads/
 
 # OS & Editor files
 .DS_Store

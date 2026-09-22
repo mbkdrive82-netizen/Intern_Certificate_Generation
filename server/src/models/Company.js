@@ -11,6 +11,15 @@ const CompanySchema = new mongoose.Schema(
     logoPath: {
       type: String,
       default: ''
+    },
+    bgImagePath: {
+      type: String,
+      default: ''
+    },
+    templateStyle: {
+      type: String,
+      enum: ['sritech', 'mbk', 'venthulir', 'pavech', 'default'],
+      default: 'default'
     }
   },
   {

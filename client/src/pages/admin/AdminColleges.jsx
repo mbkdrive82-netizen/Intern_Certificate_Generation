@@ -4,7 +4,29 @@ import Modal from '../../components/ui/Modal';
 import Pagination from '../../components/ui/Pagination';
 import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
-import { Building2, Plus, Search, Users, Award, ShieldCheck } from 'lucide-react';
+import { Building2, Plus, Search, Users, Award, ShieldCheck, Copy, Eye, EyeOff, Key, CheckCircle, Download } from 'lucide-react';
+
+// Auto-generate username from college code
+const generateUsername = (code) => {
+  if (!code) return '';
+  return code.toLowerCase().trim() + '_admin';
+};
+
+// Auto-generate strong password
+const generatePassword = () => {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const special = '@#$!';
+  const all = upper + lower + digits + special;
+  let pwd = '';
+  pwd += upper[Math.floor(Math.random() * upper.length)];
+  pwd += lower[Math.floor(Math.random() * lower.length)];
+  pwd += digits[Math.floor(Math.random() * digits.length)];
+  pwd += special[Math.floor(Math.random() * special.length)];
+  for (let i = 0; i < 6; i++) pwd += all[Math.floor(Math.random() * all.length)];
+  return pwd.split('').sort(() => Math.random() - 0.5).join('');
+};
 
 const AdminColleges = () => {
   const [colleges, setColleges] = useState([]);
@@ -19,7 +41,15 @@ const AdminColleges = () => {
   const [code, setCode] = useState('');
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Success modal with credentials display
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [copiedField, setCopiedField] = useState('');
+
+  // Per-row download loading state
+  const [downloadingId, setDownloadingId] = useState(null);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -27,6 +57,14 @@ const AdminColleges = () => {
   useEffect(() => {
     fetchColleges();
   }, [page, search]);
+
+  // Auto-generate credentials when code changes
+  useEffect(() => {
+    if (code) {
+      setAdminUsername(generateUsername(code));
+      setAdminPassword(generatePassword());
+    }
+  }, [code]);
 
   const fetchColleges = async () => {
     try {
@@ -55,7 +93,8 @@ const AdminColleges = () => {
       });
 
       if (res.data.success) {
-        setToast({ message: 'College created successfully!', type: 'success' });
+        // Show credentials popup
+        setCreatedCredentials({ collegeName: name, username: adminUsername, password: adminPassword });
         setIsModalOpen(false);
         setName('');
         setCode('');
@@ -68,6 +107,51 @@ const AdminColleges = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCopy = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(''), 2000);
+  };
+
+  const downloadCredentials = (collegeName, username, password) => {
+    const rows = [
+      ['College Name', 'Username', 'Password', 'Login URL'],
+      [collegeName, username, password, window.location.origin + '/login']
+    ];
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(collegeName || 'college').replace(/\s+/g, '_')}_credentials.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const resetAndDownload = async (col) => {
+    try {
+      setDownloadingId(col._id);
+      const res = await api.post(`/admin/colleges/${col._id}/reset-credentials`);
+      if (res.data.success) {
+        const { collegeName, username, password } = res.data.credentials;
+        downloadCredentials(collegeName, username, password);
+        setToast({ message: `Credentials reset & downloaded for ${collegeName}`, type: 'success' });
+      }
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to reset credentials', type: 'error' });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setName('');
+    setCode('');
+    setAdminUsername('');
+    setAdminPassword('');
   };
 
   return (
@@ -108,41 +192,47 @@ const AdminColleges = () => {
                 <th className="px-5 py-3">Enrolled Students</th>
                 <th className="px-5 py-3">Departments</th>
                 <th className="px-5 py-3">Certificates Status</th>
+                <th className="px-5 py-3">Credentials</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-8">
-                    <div className="inline-block w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <td colSpan="7" className="text-center py-12">
+                    <div className="inline-block w-7 h-7 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-xs text-slate-400 font-semibold mt-2">Loading colleges...</p>
                   </td>
                 </tr>
               ) : colleges.length > 0 ? (
                 colleges.map((col) => (
-                  <tr key={col._id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3.5 font-mono font-bold text-blue-700 text-xs">{col.code}</td>
-                    <td className="px-5 py-3.5 font-bold text-slate-900">{col.name}</td>
-                    <td className="px-5 py-3.5 text-xs">
+                  <tr key={col._id} className="hover:bg-blue-50/30 transition-colors">
+                    <td className="px-5 py-4 font-mono font-bold text-blue-700 text-xs">
+                      <span className="bg-blue-50 border border-blue-100 px-2 py-1 rounded-md">
+                        {col.code}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 font-bold text-slate-900">{col.name}</td>
+                    <td className="px-5 py-4 text-xs">
                       {col.adminUserId?.username ? (
-                        <span className="inline-flex items-center space-x-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          <ShieldCheck className="w-3 h-3" />
+                        <span className="inline-flex items-center space-x-1.5 text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                          <ShieldCheck className="w-3.5 h-3.5" />
                           <span>{col.adminUserId.username}</span>
                         </span>
                       ) : (
                         <span className="text-slate-400 italic">No admin assigned</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 font-bold text-slate-800">
+                    <td className="px-5 py-4 font-bold text-slate-800">
                       <span className="inline-flex items-center space-x-1.5">
                         <Users className="w-4 h-4 text-blue-600" />
                         <span>{col.studentCount || 0}</span>
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-xs">
+                    <td className="px-5 py-4 text-xs">
                       <div className="flex flex-wrap gap-1">
                         {col.departments && col.departments.length > 0 ? (
                           col.departments.map(d => (
-                            <span key={d} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200 text-[11px]">
+                            <span key={d} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200 text-[10px]">
                               {d}
                             </span>
                           ))
@@ -151,17 +241,34 @@ const AdminColleges = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-xs font-semibold text-slate-700">
-                      <span className="inline-flex items-center space-x-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                        <Award className="w-3.5 h-3.5" />
+                    <td className="px-5 py-4 text-xs font-semibold text-slate-700">
+                      <span className="inline-flex items-center space-x-1 text-amber-800 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 font-bold">
+                        <Award className="w-3.5 h-3.5 text-amber-600" />
                         <span>{col.certCount || 0} Issued / {col.pendingCount || 0} Pending</span>
                       </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={() => resetAndDownload(col)}
+                        disabled={downloadingId === col._id}
+                        title="Reset password & download credentials"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                      >
+                        {downloadingId === col._id ? (
+                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        {downloadingId === col._id ? 'Resetting...' : 'Download CSV'}
+                      </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-slate-400">No colleges found</td>
+                  <td colSpan="7" className="text-center py-12 text-slate-400 font-medium">
+                    No colleges found matching search
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -177,7 +284,7 @@ const AdminColleges = () => {
       </div>
 
       {/* Add College Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New College">
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title="Add New College">
         <form onSubmit={handleCreateCollege} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase mb-1">College Name *</label>
@@ -203,40 +310,87 @@ const AdminColleges = () => {
             />
           </div>
 
-          <div className="pt-3 border-t border-slate-200">
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Create College Admin Account (Optional)
-            </p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-slate-600 mb-1">Admin Username</label>
-                <input
-                  type="text"
-                  value={adminUsername}
-                  onChange={(e) => setAdminUsername(e.target.value)}
-                  placeholder="e.g. abcadmin"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-600"
-                />
+          {/* Auto-generated credentials preview */}
+          {adminUsername && (
+            <div className="pt-3 border-t border-slate-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Key className="w-4 h-4 text-blue-600" />
+                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Auto-Generated Login Credentials
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs text-slate-600 mb-1">Admin Password</label>
-                <input
-                  type="password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder="Password for college admin"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-600"
-                />
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                {/* Username */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Username</label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm font-mono font-bold text-blue-800 bg-white border border-blue-200 rounded-lg px-3 py-1.5">
+                      {adminUsername}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(adminUsername, 'username')}
+                      className="p-1.5 rounded-lg bg-white border border-blue-200 hover:bg-blue-100 text-blue-600 transition-all"
+                    >
+                      {copiedField === 'username' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Password</label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm font-mono font-bold text-blue-800 bg-white border border-blue-200 rounded-lg px-3 py-1.5 tracking-wider">
+                      {showPassword ? adminPassword : '••••••••••'}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="p-1.5 rounded-lg bg-white border border-blue-200 hover:bg-blue-100 text-blue-600 transition-all"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(adminPassword, 'password')}
+                      className="p-1.5 rounded-lg bg-white border border-blue-200 hover:bg-blue-100 text-blue-600 transition-all"
+                    >
+                      {copiedField === 'password' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAdminPassword(generatePassword())}
+                  className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold underline"
+                >
+                  ↻ Regenerate Password
+                </button>
+
+                {/* Download credentials button (in form preview) */}
+                <button
+                  type="button"
+                  onClick={() => downloadCredentials(name, adminUsername, adminPassword)}
+                  className="flex items-center gap-1.5 text-[11px] text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 mt-1 transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Credentials (.csv)
+                </button>
               </div>
+
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                ⚠️ Note these credentials before creating — password cannot be recovered later.
+              </p>
             </div>
-          </div>
+          )}
 
           <div className="pt-4 flex justify-end space-x-2">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={handleCloseModal}
               className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold"
             >
               Cancel
@@ -251,6 +405,77 @@ const AdminColleges = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Credentials Success Modal */}
+      {createdCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">College Created Successfully!</h3>
+                <p className="text-xs text-slate-500">{createdCredentials.collegeName}</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 mb-4">
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Login Credentials</p>
+
+              <div>
+                <label className="text-[11px] text-slate-400 uppercase font-semibold">Username</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="flex-1 font-mono font-bold text-blue-800 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                    {createdCredentials.username}
+                  </code>
+                  <button
+                    onClick={() => handleCopy(createdCredentials.username, 'su')}
+                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600"
+                  >
+                    {copiedField === 'su' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 uppercase font-semibold">Password</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="flex-1 font-mono font-bold text-blue-800 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm tracking-wider">
+                    {createdCredentials.password}
+                  </code>
+                  <button
+                    onClick={() => handleCopy(createdCredentials.password, 'sp')}
+                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600"
+                  >
+                    {copiedField === 'sp' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+              🔐 Save these credentials now! This password will not be shown again.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => downloadCredentials(createdCredentials.collegeName, createdCredentials.username, createdCredentials.password)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Download Credentials
+              </button>
+              <button
+                onClick={() => setCreatedCredentials(null)}
+                className="flex-1 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };

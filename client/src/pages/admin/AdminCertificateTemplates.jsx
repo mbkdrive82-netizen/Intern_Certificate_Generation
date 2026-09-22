@@ -107,8 +107,8 @@ const AdminCertificateTemplates = () => {
             <p className="text-slate-600">Company Logo automatically resolved from the student's company assigned in Excel.</p>
           </div>
           <div className="p-3 rounded-lg bg-blue-50/70 border border-blue-200 text-center">
-            <strong className="text-blue-800 block mb-1">CENTER: Initiative Header</strong>
-            <p className="text-slate-600">TN Skills Development Initiative in Collaboration with SM Groups</p>
+            <strong className="text-blue-800 block mb-1">TOP-CENTER: TNSkill Master Logo</strong>
+            <p className="text-slate-600">Official Tamil Nadu Skill Development Corporation Logo common for all certificates.</p>
           </div>
           <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-200 text-right">
             <strong className="text-emerald-800 block mb-1">TOP-RIGHT: SM GROUPS Master</strong>

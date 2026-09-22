@@ -8,6 +8,7 @@ import {
   Upload,
   Briefcase,
   Award,
+  FileText,
   LogOut,
   User,
   ChevronRight,
@@ -34,7 +35,8 @@ const Sidebar = ({ mobileOpen, onCloseMobile }) => {
       { label: 'Upload Students', path: '/admin/upload', icon: Upload },
       { label: 'Students List', path: '/admin/students', icon: Users },
       { label: 'Sub-Company Logos', path: '/admin/companies', icon: Briefcase },
-      { label: 'Certificates', path: '/admin/generate-certificates', icon: Award }
+      { label: 'Generate Certificate', path: '/admin/generate-certificates', icon: Award },
+      { label: 'View Certificates', path: '/admin/certificates', icon: FileText }
     ];
   } else if (user.role === 'TNSKILLS_ADMIN') {
     workspaceItems = [
