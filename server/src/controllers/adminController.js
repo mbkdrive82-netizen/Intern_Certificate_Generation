@@ -390,10 +390,24 @@ const createCompany = async (req, res, next) => {
     const bgImageFile = req.files?.['bgImage']?.[0] || (req.file?.fieldname === 'bgImage' ? req.file : null);
 
     if (logoFile) {
-      logoPath = `uploads/${path.basename(logoFile.path)}`;
+      try {
+        const buffer = fs.readFileSync(logoFile.path);
+        const ext = path.extname(logoFile.path).toLowerCase().replace('.', '');
+        const mime = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : 'application/octet-stream';
+        logoPath = `data:${mime};base64,${buffer.toString('base64')}`;
+      } catch (e) {
+        logoPath = `uploads/${path.basename(logoFile.path)}`;
+      }
     }
     if (bgImageFile) {
-      bgImagePath = `uploads/${path.basename(bgImageFile.path)}`;
+      try {
+        const buffer = fs.readFileSync(bgImageFile.path);
+        const ext = path.extname(bgImageFile.path).toLowerCase().replace('.', '');
+        const mime = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : 'application/octet-stream';
+        bgImagePath = `data:${mime};base64,${buffer.toString('base64')}`;
+      } catch (e) {
+        bgImagePath = `uploads/${path.basename(bgImageFile.path)}`;
+      }
     }
 
     if (!name) {
@@ -443,10 +457,24 @@ const updateCompany = async (req, res, next) => {
     const bgImageFile = req.files?.['bgImage']?.[0] || (req.file?.fieldname === 'bgImage' ? req.file : null);
 
     if (logoFile) {
-      updateData.logoPath = `uploads/${path.basename(logoFile.path)}`;
+      try {
+        const buffer = fs.readFileSync(logoFile.path);
+        const ext = path.extname(logoFile.path).toLowerCase().replace('.', '');
+        const mime = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : 'application/octet-stream';
+        updateData.logoPath = `data:${mime};base64,${buffer.toString('base64')}`;
+      } catch (e) {
+        updateData.logoPath = `uploads/${path.basename(logoFile.path)}`;
+      }
     }
     if (bgImageFile) {
-      updateData.bgImagePath = `uploads/${path.basename(bgImageFile.path)}`;
+      try {
+        const buffer = fs.readFileSync(bgImageFile.path);
+        const ext = path.extname(bgImageFile.path).toLowerCase().replace('.', '');
+        const mime = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : 'application/octet-stream';
+        updateData.bgImagePath = `data:${mime};base64,${buffer.toString('base64')}`;
+      } catch (e) {
+        updateData.bgImagePath = `uploads/${path.basename(bgImageFile.path)}`;
+      }
     }
 
     const company = await Company.findByIdAndUpdate(id, updateData, { new: true });

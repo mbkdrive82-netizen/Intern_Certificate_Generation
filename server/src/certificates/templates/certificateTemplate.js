@@ -1,12 +1,33 @@
 const fs = require('fs');
 const path = require('path');
 
-// Helper to convert local file to base64 Data URI for reliable Puppeteer rendering
+// Helper to convert local file or Data URI to base64 Data URI for reliable Puppeteer rendering
 const fileToDataUri = (filePath) => {
-  if (!filePath || !fs.existsSync(filePath)) return '';
-  const ext = path.extname(filePath).toLowerCase().replace('.', '');
-  const mimeType = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : 'image/svg+xml';
-  const buffer = fs.readFileSync(filePath);
+  if (!filePath) return '';
+  if (typeof filePath === 'string' && filePath.startsWith('data:')) return filePath;
+
+  let resolvedPath = filePath;
+  if (!path.isAbsolute(resolvedPath)) {
+    const candidates = [
+      path.resolve(resolvedPath),
+      path.join(__dirname, '../../../', resolvedPath),
+      path.join(__dirname, '../../', resolvedPath),
+      path.join(__dirname, '../', resolvedPath),
+      path.join(process.cwd(), resolvedPath),
+      path.join(process.cwd(), 'server', resolvedPath)
+    ];
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        resolvedPath = cand;
+        break;
+      }
+    }
+  }
+
+  if (!fs.existsSync(resolvedPath)) return '';
+  const ext = path.extname(resolvedPath).toLowerCase().replace('.', '');
+  const mimeType = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : 'application/octet-stream';
+  const buffer = fs.readFileSync(resolvedPath);
   return `data:${mimeType};base64,${buffer.toString('base64')}`;
 };
 
@@ -118,16 +139,9 @@ const renderCertificateHtml = (data) => {
 
   // Official Certificate Background Image (Sub-Company custom background or official default)
   const defaultBgPath = path.join(__dirname, '../assets/official_cert_bg.png');
-  let chosenBgPath = defaultBgPath;
-  if (data.bgImagePath) {
-    const customBg = path.isAbsolute(data.bgImagePath)
-      ? data.bgImagePath
-      : path.join(__dirname, '../../../', data.bgImagePath);
-    if (fs.existsSync(customBg)) {
-      chosenBgPath = customBg;
-    }
-  }
-  const bgImageDataUri = fileToDataUri(chosenBgPath);
+  const bgImageDataUri = (data.bgImagePath && fileToDataUri(data.bgImagePath))
+    ? fileToDataUri(data.bgImagePath)
+    : fileToDataUri(defaultBgPath);
   html = html.replace(/{{bg_image_src}}/g, bgImageDataUri);
 
   // Logo conditionals:
