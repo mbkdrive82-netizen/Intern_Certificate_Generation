@@ -3,6 +3,7 @@ import AppLayout from '../../components/layout/AppLayout';
 import Modal from '../../components/ui/Modal';
 import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
+import { getAssetUrl } from '../../utils/imageUrl';
 import { Briefcase, Plus, Image, Upload, CheckCircle2, AlertCircle, ShieldCheck, Trash2, X } from 'lucide-react';
 
 const AdminCompanies = () => {
@@ -330,7 +331,7 @@ const AdminCompanies = () => {
                   <div className="flex items-start space-x-3.5">
                     <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {comp.logoPath ? (
-                        <img src={`/${comp.logoPath}`} alt={comp.name} className="w-full h-full object-contain p-1" />
+                        <img src={getAssetUrl(comp.logoPath)} alt={comp.name} className="w-full h-full object-contain p-1" />
                       ) : (
                         <Briefcase className="w-6 h-6 text-slate-300" />
                       )}
@@ -355,7 +356,7 @@ const AdminCompanies = () => {
                   {/* Background Full Preview (100% uncropped aspect ratio) */}
                   {comp.bgImagePath && (
                     <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-100 aspect-[297/210] relative group flex items-center justify-center p-1 shadow-2xs">
-                      <img src={`/${comp.bgImagePath}`} alt="Certificate Background" className="w-full h-full object-contain rounded-lg" />
+                      <img src={getAssetUrl(comp.bgImagePath)} alt="Certificate Background" className="w-full h-full object-contain rounded-lg" />
                       <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-xs">
                         <span className="text-white text-[11px] font-bold bg-slate-900/80 px-2.5 py-1 rounded-lg">Full Certificate Background</span>
                       </div>
@@ -470,7 +471,7 @@ const AdminCompanies = () => {
             {editCompany?.logoPath && (
               <div className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <img src={`/${editCompany.logoPath}`} alt={editCompany.name} className="h-10 w-10 object-contain" />
+                  <img src={getAssetUrl(editCompany.logoPath)} alt={editCompany.name} className="h-10 w-10 object-contain" />
                   <span className="text-xs text-slate-600 font-medium">Current Logo</span>
                 </div>
                 <button
@@ -537,7 +538,7 @@ const AdminCompanies = () => {
                   </button>
                 </div>
                 <div className="aspect-[297/210] rounded-xl overflow-hidden border border-slate-200 bg-slate-100 p-1 flex items-center justify-center shadow-2xs">
-                  <img src={`/${editCompanyBg.bgImagePath}`} alt="Background Preview" className="w-full h-full object-contain rounded-lg" />
+                  <img src={getAssetUrl(editCompanyBg.bgImagePath)} alt="Background Preview" className="w-full h-full object-contain rounded-lg" />
                 </div>
               </div>
             )}

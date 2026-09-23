@@ -91,12 +91,75 @@ const processStudentExcel = async (filePath, options = {}) => {
     throw new Error(`Missing required Excel columns: ${missingCols.join(', ')}. Required: Name, College, Department, Year, Company, Course`);
   }
 
-  let totalRows = rawData.length;
+  // 1. Pre-fetch in-memory caches to avoid N+1 DB roundtrips
+  const currentYear = new Date().getFullYear();
+  const prefix = `TNS-${currentYear}-`;
+  
+  const lastStudent = await Student.findOne({ studentId: new RegExp(`^${prefix}`) })
+    .sort({ studentId: -1 })
+    .lean();
+
+  let nextSeq = 1;
+  if (lastStudent && lastStudent.studentId) {
+    const parts = lastStudent.studentId.split('-');
+    if (parts.length === 3) {
+      const parsed = parseInt(parts[2], 10);
+      if (!isNaN(parsed)) nextSeq = parsed + 1;
+    }
+  }
+
+  // Cache existing usernames
+  const allUsers = await User.find({}, 'username').lean();
+  const existingUsernames = new Set(allUsers.map(u => u.username.toLowerCase()));
+
+  // Cache existing colleges
+  const allColleges = await College.find({}).lean();
+  const collegesMap = new Map();
+  allColleges.forEach(c => {
+    collegesMap.set(c.name.toLowerCase().trim(), c);
+    if (c.code) collegesMap.set(c.code.toUpperCase().trim(), c);
+  });
+
+  // Cache existing companies
+  const allCompanies = await Company.find({}).lean();
+  const companiesMap = new Map();
+  allCompanies.forEach(c => companiesMap.set(c.name.toLowerCase().trim(), c));
+
+  // Cache existing courses
+  const allCourses = await Course.find({}).lean();
+  const coursesMap = new Map();
+  allCourses.forEach(c => coursesMap.set(`${c.name.toLowerCase().trim()}_${c.companyId}`, c));
+
+  // Cache existing students for duplicate check
+  const allExistingStudents = await Student.find({}, 'name collegeId department').lean();
+  const existingStudentsSet = new Set(
+    allExistingStudents.map(s => `${s.name.toLowerCase().trim()}_${s.collegeId}_${s.department.toLowerCase().trim()}`)
+  );
+
   let successful = 0;
   let failed = 0;
   let duplicates = 0;
   const failedRows = [];
   const createdStudents = [];
+
+  // Helper for fast in-memory username generation
+  const getFastUsername = (name) => {
+    const cleanName = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '.')
+      .replace(/\.+/g, '.')
+      .replace(/^\.|\.$/g, '');
+    
+    let base = cleanName || 'student';
+    let candidate = base;
+    let counter = 1;
+    while (existingUsernames.has(candidate)) {
+      candidate = `${base}${counter}`;
+      counter++;
+    }
+    existingUsernames.add(candidate);
+    return candidate;
+  };
 
   for (let i = 0; i < rawData.length; i++) {
     const row = rawData[i];
@@ -121,21 +184,17 @@ const processStudentExcel = async (filePath, options = {}) => {
     }
 
     try {
-      // Find College
-      let college = await College.findOne({
-        $or: [
-          { name: new RegExp(`^${collegeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-          { code: collegeName.toUpperCase() }
-        ]
-      });
+      // Find College from cache or create
+      const colKey = collegeName.toLowerCase().trim();
+      let college = collegesMap.get(colKey) || collegesMap.get(collegeName.toUpperCase().trim());
 
       if (!college) {
         if (createMissingColleges) {
           const code = collegeName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 6) + Math.floor(Math.random() * 100);
-          college = await College.create({
-            name: collegeName,
-            code: code
-          });
+          const newCol = await College.create({ name: collegeName, code });
+          college = newCol.toObject();
+          collegesMap.set(colKey, college);
+          collegesMap.set(code.toUpperCase(), college);
         } else {
           failed++;
           failedRows.push({
@@ -147,14 +206,9 @@ const processStudentExcel = async (filePath, options = {}) => {
         }
       }
 
-      // Check Duplicate Student
-      const existingStudent = await Student.findOne({
-        name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
-        collegeId: college._id,
-        department: new RegExp(`^${department}$`, 'i')
-      });
-
-      if (existingStudent) {
+      // Check Duplicate Student via in-memory Set
+      const dupKey = `${name.toLowerCase().trim()}_${college._id}_${department.toLowerCase().trim()}`;
+      if (existingStudentsSet.has(dupKey)) {
         duplicates++;
         failed++;
         failedRows.push({
@@ -164,27 +218,33 @@ const processStudentExcel = async (filePath, options = {}) => {
         });
         continue;
       }
+      existingStudentsSet.add(dupKey);
 
       // Ensure Company exists
-      let company = await Company.findOne({ name: new RegExp(`^${companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+      const compKey = companyName.toLowerCase().trim();
+      let company = companiesMap.get(compKey);
       if (!company) {
-        company = await Company.create({ name: companyName });
+        const newComp = await Company.create({ name: companyName });
+        company = newComp.toObject();
+        companiesMap.set(compKey, company);
       }
 
       // Ensure Course exists
-      let course = await Course.findOne({
-        name: new RegExp(`^${courseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
-        companyId: company._id
-      });
+      const courseKey = `${courseName.toLowerCase().trim()}_${company._id}`;
+      let course = coursesMap.get(courseKey);
       if (!course) {
-        course = await Course.create({ name: courseName, companyId: company._id });
+        const newCourse = await Course.create({ name: courseName, companyId: company._id });
+        course = newCourse.toObject();
+        coursesMap.set(courseKey, course);
       }
 
       // Generate credentials
-      const studentId = await generateNextStudentId();
+      const studentId = `${prefix}${String(nextSeq).padStart(5, '0')}`;
+      nextSeq++;
+
       const tempPassword = generateTempPassword();
-      const username = await generateUsername(name);
-      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      const username = getFastUsername(name);
+      const passwordHash = await bcrypt.hash(tempPassword, 8);
 
       // Create User
       const user = new User({

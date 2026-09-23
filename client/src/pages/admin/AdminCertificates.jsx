@@ -4,6 +4,7 @@ import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
 import Modal from '../../components/ui/Modal';
 import api from '../../services/api';
+import { getAssetUrl } from '../../utils/imageUrl';
 import {
   Award,
   Download,
@@ -434,7 +435,7 @@ const AdminCertificates = () => {
           <div className="space-y-4">
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
               <img
-                src={`/${previewCert.previewImagePath}`}
+                src={getAssetUrl(previewCert.previewImagePath)}
                 alt="Rendered Certificate Preview"
                 className="w-full h-auto block"
               />

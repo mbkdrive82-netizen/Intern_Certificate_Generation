@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import Badge from '../../components/ui/Badge';
 import api from '../../services/api';
+import { getAssetUrl } from '../../utils/imageUrl';
 import { Award, Download, CheckCircle2, Clock, FileText, ExternalLink } from 'lucide-react';
 
 const StudentCertificate = () => {
@@ -105,7 +106,7 @@ const StudentCertificate = () => {
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Visual Certificate Preview</p>
                 <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
                   <img
-                    src={`/${certificate.previewImagePath}`}
+                    src={getAssetUrl(certificate.previewImagePath)}
                     alt="Official Certificate Preview"
                     className="w-full h-auto block"
                   />
