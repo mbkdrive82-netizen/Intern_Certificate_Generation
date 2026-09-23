@@ -789,6 +789,51 @@ const getCertificates = async (req, res, next) => {
       filterStudents = true;
     }
 
+    if (status === 'PENDING') {
+      const generatedStudentIds = await Certificate.find({ status: 'GENERATED' }).distinct('studentId');
+      studentQuery._id = { $nin: generatedStudentIds };
+
+      if (search && search.trim()) {
+        const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        studentQuery.$or = [
+          { name: searchRegex },
+          { studentId: searchRegex },
+          { department: searchRegex },
+          { course: searchRegex }
+        ];
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const total = await Student.countDocuments(studentQuery);
+      const pendingStudents = await Student.find(studentQuery)
+        .populate('collegeId', 'name code')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      const certificates = pendingStudents.map(st => ({
+        _id: `pending_${st._id}`,
+        studentId: st,
+        certificateId: 'Pending',
+        certificateNumber: 'Pending',
+        status: 'PENDING',
+        generatedAt: null,
+        filePath: null,
+        previewImagePath: null
+      }));
+
+      return res.json({
+        success: true,
+        certificates,
+        pagination: {
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      });
+    }
+
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       const matchedStudents = await Student.find({
@@ -814,16 +859,17 @@ const getCertificates = async (req, res, next) => {
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Certificate.countDocuments(certQuery);
-
-    const certificates = await Certificate.find(certQuery)
-      .populate({
-        path: 'studentId',
-        populate: { path: 'collegeId', select: 'name code' }
-      })
-      .sort({ generatedAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    const [total, certificates] = await Promise.all([
+      Certificate.countDocuments(certQuery),
+      Certificate.find(certQuery)
+        .populate({
+          path: 'studentId',
+          populate: { path: 'collegeId', select: 'name code' }
+        })
+        .sort({ generatedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+    ]);
 
     res.json({
       success: true,

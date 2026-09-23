@@ -439,6 +439,14 @@ const AdminCertificates = () => {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end space-x-1.5">
+                          {cert.status === 'PENDING' && (
+                            <Link
+                              to="/admin/generate-certificates"
+                              className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-colors"
+                            >
+                              <span>+ Generate</span>
+                            </Link>
+                          )}
                           {cert.previewImagePath && (
                             <button
                               onClick={() => setPreviewCert(cert)}
