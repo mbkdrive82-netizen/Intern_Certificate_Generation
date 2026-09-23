@@ -725,24 +725,27 @@ const getCertificates = async (req, res, next) => {
     const studentQuery = {};
     let filterStudents = false;
 
-    if (collegeId && collegeId !== 'ALL') {
+    if (collegeId && collegeId !== 'ALL' && collegeId !== 'all') {
       studentQuery.collegeId = collegeId;
       filterStudents = true;
     }
-    if (department && department !== 'ALL') {
-      studentQuery.department = new RegExp(`^${department.trim()}$`, 'i');
+    if (department && department !== 'ALL' && department !== 'all') {
+      const cleanDept = department.trim().replace(/\s+/g, '\\s*');
+      studentQuery.department = new RegExp(`^${cleanDept}$`, 'i');
       filterStudents = true;
     }
-    if (year && year !== 'ALL') {
-      studentQuery.year = year.trim();
+    if (year && year !== 'ALL' && year !== 'all') {
+      studentQuery.year = new RegExp(`^${year.trim()}$`, 'i');
       filterStudents = true;
     }
-    if (company && company !== 'ALL') {
-      studentQuery.company = new RegExp(`^${company.trim()}$`, 'i');
+    if (company && company !== 'ALL' && company !== 'all') {
+      const cleanComp = company.trim().replace(/\s+/g, '\\s*');
+      studentQuery.company = new RegExp(`^${cleanComp}$`, 'i');
       filterStudents = true;
     }
-    if (course && course !== 'ALL') {
-      studentQuery.course = new RegExp(`^${course.trim()}$`, 'i');
+    if (course && course !== 'ALL' && course !== 'all') {
+      const cleanCourse = course.trim().replace(/\s+/g, '\\s*');
+      studentQuery.course = new RegExp(`^${cleanCourse}$`, 'i');
       filterStudents = true;
     }
 
