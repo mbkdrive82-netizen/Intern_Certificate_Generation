@@ -5,6 +5,8 @@ import api from '../../services/api';
 import { User, Award, Download, Building2, BookOpen, Briefcase, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { downloadPdfFromImage } from '../../utils/pdfDownloader';
+
 const StudentDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,27 +31,18 @@ const StudentDashboard = () => {
 
   const [downloading, setDownloading] = useState(false);
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     try {
       setDownloading(true);
-      const res = await api.get('/student/certificate/download', { responseType: 'blob' });
-      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      const certId = (certificate && certificate.certificateId) || 'ID';
-      link.setAttribute('download', `Certificate_${certId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+      const cert = data?.certificate;
+      const certId = cert?.certificateId || 'ID';
+      const filename = `Certificate_${certId}.pdf`;
+      const source = cert?.previewImagePath || getAssetUrl(cert?.filePath);
+      downloadPdfFromImage(source, filename);
     } catch (err) {
-      console.error('Direct download error, attempting fallback with token:', err);
-      const token = localStorage.getItem('token');
-      if (token) {
-        window.open(`/api/student/certificate/download?token=${encodeURIComponent(token)}`, '_blank');
-      }
+      console.error('Direct download error:', err);
     } finally {
-      setDownloading(false);
+      setTimeout(() => setDownloading(false), 500);
     }
   };
 

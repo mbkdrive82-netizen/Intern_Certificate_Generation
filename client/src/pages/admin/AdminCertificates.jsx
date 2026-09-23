@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getCachedData, setCachedData } from '../../utils/dataCache';
+import { downloadPdfFromImage } from '../../utils/pdfDownloader';
 
 const AdminCertificates = () => {
   const cachedCerts = getCachedData('admin_certificates_default');
@@ -448,17 +449,18 @@ const AdminCertificates = () => {
                               <span>Preview</span>
                             </button>
                           )}
-                          {cert.filePath && (
-                            <a
-                              href={getAssetUrl(cert.filePath)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors"
-                              title="Open / Download PDF"
+                          {cert.previewImagePath && (
+                            <button
+                              onClick={() => {
+                                const filename = `${(cert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${cert.certificateId || 'SMG'}.pdf`;
+                                downloadPdfFromImage(cert.previewImagePath, filename);
+                              }}
+                              className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors cursor-pointer"
+                              title="Download Print-Ready PDF"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              <Download className="w-3.5 h-3.5" />
                               <span>PDF</span>
-                            </a>
+                            </button>
                           )}
                         </div>
                       </td>
@@ -519,15 +521,16 @@ const AdminCertificates = () => {
               <span className="text-xs font-mono text-slate-500">
                 ID: {previewCert.certificateId || previewCert.certificateNumber}
               </span>
-              <a
-                href={getAssetUrl(previewCert.filePath)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all"
+              <button
+                onClick={() => {
+                  const filename = `${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${previewCert.certificateId || 'SMG'}.pdf`;
+                  downloadPdfFromImage(previewCert.previewImagePath || getAssetUrl(previewCert.filePath), filename);
+                }}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Print-Ready PDF</span>
-              </a>
+              </button>
             </div>
           </div>
         )}
