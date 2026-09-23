@@ -74,6 +74,8 @@ const processStudentExcel = async (filePath, options = {}) => {
   }
 
   const totalRows = rawData.length;
+  const sampleRow = rawData[0] || {};
+  const keys = Object.keys(sampleRow);
 
   // Smart Synonyms Dictionary for effortless Excel uploads
   const synonyms = {
@@ -87,13 +89,36 @@ const processStudentExcel = async (filePath, options = {}) => {
 
   const getFieldKey = (fieldName) => {
     const list = synonyms[fieldName.toLowerCase()] || [fieldName.toLowerCase()];
-    return keys.find(k => {
+    // 1. Exact normalized match first
+    for (const k of keys) {
       const cleanK = k.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      return list.some(syn => {
-        const cleanSyn = syn.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return cleanK === cleanSyn || cleanK.includes(cleanSyn) || cleanSyn.includes(cleanK);
-      });
-    });
+      if (list.some(syn => cleanK === syn.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+        return k;
+      }
+    }
+    // 2. Starts with / includes specific target keyword only
+    for (const k of keys) {
+      const cleanK = k.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (fieldName === 'college' && (cleanK.includes('college') || cleanK.includes('institution') || cleanK.includes('institute'))) {
+        return k;
+      }
+      if (fieldName === 'name' && (cleanK.includes('fullname') || cleanK.includes('studentname') || cleanK.includes('candidatename') || cleanK === 'name')) {
+        return k;
+      }
+      if (fieldName === 'department' && (cleanK.includes('department') || cleanK.includes('branch') || cleanK === 'dept')) {
+        return k;
+      }
+      if (fieldName === 'year' && (cleanK.includes('semester') || cleanK.includes('academic') || cleanK === 'year' || cleanK === 'sem')) {
+        return k;
+      }
+      if (fieldName === 'company' && (cleanK.includes('company') || cleanK.includes('partner') || cleanK.includes('subcomp'))) {
+        return k;
+      }
+      if (fieldName === 'course' && (cleanK.includes('course') || cleanK.includes('topic') || cleanK.includes('domain'))) {
+        return k;
+      }
+    }
+    return null;
   };
 
   const getVal = (row, fieldName) => {
