@@ -146,7 +146,8 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await new Promise(r => setTimeout(r, 800));
 
     // Generate High-Quality A4 Landscape PDF
     await page.pdf({

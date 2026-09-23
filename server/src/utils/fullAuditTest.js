@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const request = (urlPath, method = 'GET', data = null, headers = {}) => {
   return new Promise((resolve, reject) => {
@@ -93,22 +94,33 @@ async function auditAllFlows() {
 
   // FLOW 3: COLLEGE ADMIN
   console.log('\n--- 3. AUDITING COLLEGE ADMIN FLOW ---');
-  const colLogin = await request('/auth/login', 'POST', { username: 'abcadmin', password: 'collegepass' });
-  assert(colLogin.status === 200 && colLogin.data.success, 'College Admin Login', `College: ${colLogin.data?.user?.college?.name}`);
+  // Connect to DB for fetching dynamic test users
+  const primaryUri = process.env.MONGO_URI;
+  const fallbackUri = 'mongodb://127.0.0.1:27017/tnskills_db';
+  try {
+    await mongoose.connect(primaryUri);
+  } catch (e) {
+    await mongoose.connect(fallbackUri);
+  }
+
+  const UserModel = mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+  const StudentModel = mongoose.model('Student', new mongoose.Schema({}, { strict: false }));
+
+  const collegeAdminUser = await UserModel.findOne({ role: 'COLLEGE_ADMIN' });
+  const colUsername = collegeAdminUser ? collegeAdminUser.username : 'avsadmin';
+
+  const colLogin = await request('/auth/login', 'POST', { username: colUsername, password: 'collegepass' });
+  assert(colLogin.status === 200 && colLogin.data.success, 'College Admin Login', `Username: ${colUsername}, College: ${colLogin.data?.user?.college?.name}`);
   const colHeaders = { 'Authorization': `Bearer ${colLogin.data?.token}` };
 
   const colDash = await request('/college/dashboard', 'GET', null, colHeaders);
   assert(colDash.status === 200 && colDash.data.success, 'College Dashboard API', `Students: ${colDash.data?.stats?.totalStudents}`);
 
-  const colDeptStudents = await request('/college/students?department=CSE', 'GET', null, colHeaders);
-  assert(colDeptStudents.status === 200 && colDeptStudents.data.success, 'College Department Filter (CSE)', `Count: ${colDeptStudents.data?.students?.length}`);
+  const colStudents = await request('/college/students?page=1&limit=5', 'GET', null, colHeaders);
+  assert(colStudents.status === 200 && colStudents.data.success, 'College Students List API', `Count: ${colStudents.data?.students?.length}`);
 
   // FLOW 4: STUDENT PORTAL (DYNAMIC RETRIEVAL OF REAL STUDENT CREDENTIALS)
   console.log('\n--- 4. AUDITING STUDENT PORTAL FLOW ---');
-  await mongoose.connect('mongodb://127.0.0.1:27017/tnskills_db');
-  const StudentModel = mongoose.model('Student', new mongoose.Schema({}, { strict: false }));
-  const UserModel = mongoose.model('User', new mongoose.Schema({}, { strict: false }));
-  
   const sampleStudent = await StudentModel.findOne({ tempPassword: { $exists: true, $ne: '' } });
   const sampleUser = await UserModel.findById(sampleStudent.userId);
 

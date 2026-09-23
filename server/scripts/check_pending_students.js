@@ -5,7 +5,8 @@ mongoose.connect('mongodb://127.0.0.1:27017/tnskills_db').then(async () => {
     name: String,
     studentId: String,
     collegeId: mongoose.Schema.Types.ObjectId,
-    certificateGenerated: Boolean
+    certificateGenerated: Boolea
+    n
   }));
   const College = mongoose.model('College', new mongoose.Schema({ name: String }));
   const Certificate = mongoose.model('Certificate', new mongoose.Schema({
