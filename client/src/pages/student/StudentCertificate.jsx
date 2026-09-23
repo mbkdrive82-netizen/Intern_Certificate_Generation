@@ -63,19 +63,21 @@ const StudentCertificate = () => {
       <div className="max-w-4xl mx-auto space-y-6">
         {hasCertificate && certificate ? (
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Official Credential</span>
                 <h3 className="text-xl font-black text-slate-900">Certificate of Completion</h3>
                 <p className="text-xs font-mono text-blue-700 font-bold mt-0.5">Certificate ID: {certificate.certificateId}</p>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <Badge status="GENERATED" />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:space-x-3">
+                <div className="w-fit">
+                  <Badge status="GENERATED" />
+                </div>
                 <button
                   onClick={handleDownload}
                   disabled={downloading}
-                  className="flex items-center space-x-2 px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl shadow-xs text-xs transition-all disabled:opacity-60"
+                  className="flex items-center justify-center space-x-2 px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl shadow-xs text-xs transition-all disabled:opacity-60 cursor-pointer w-full sm:w-auto"
                 >
                   {downloading ? (
                     <>
@@ -92,7 +94,7 @@ const StudentCertificate = () => {
               </div>
             </div>
 
-            {/* Real Rendered Visual Preview (Section 84 & 85) */}
+            {/* Real Rendered Visual Preview */}
             {certificate.previewImagePath && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Visual Certificate Preview</p>
@@ -106,8 +108,8 @@ const StudentCertificate = () => {
               </div>
             )}
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-              <span>Status: <strong className="text-emerald-700 font-bold">VERIFIED & GENERATED</strong></span>
+            <div className="p-3 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span>Status: <strong className="text-emerald-700 font-bold">VERIFIED & ISSUED</strong></span>
               <span>Issued On: <strong className="text-slate-900">{new Date(certificate.generatedAt).toLocaleDateString()}</strong></span>
             </div>
           </div>

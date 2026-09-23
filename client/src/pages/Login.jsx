@@ -78,9 +78,10 @@ const Login = () => {
         WebkitBackdropFilter: 'blur(20px)',
         borderRadius: '24px',
         boxShadow: '0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.6)',
-        padding: '44px 40px',
+        padding: 'clamp(28px, 6vw, 44px) clamp(18px, 5vw, 40px)',
         width: '100%',
         maxWidth: '420px',
+        boxSizing: 'border-box',
         position: 'relative',
         zIndex: 1
       }}>
