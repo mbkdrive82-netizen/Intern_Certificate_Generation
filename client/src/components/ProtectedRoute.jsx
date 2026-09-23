@@ -8,8 +8,8 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900">
-        <LoadingSpinner message="Authenticating session" subtitle="SM Groups Enterprise Portal" />
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <LoadingSpinner message="Authenticating..." />
       </div>
     );
   }
