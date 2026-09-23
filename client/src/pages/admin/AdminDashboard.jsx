@@ -20,6 +20,8 @@ import {
 import { Link } from 'react-router-dom';
 import { getCachedData, setCachedData } from '../../utils/dataCache';
 
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+
 const AdminDashboard = () => {
   const cached = getCachedData('admin_dashboard');
   const [data, setData] = useState(cached);
@@ -62,10 +64,7 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <AppLayout title="Dashboard">
-        <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
-          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-semibold text-slate-500">Loading dashboard...</p>
-        </div>
+        <LoadingSpinner message="Loading Dashboard..." />
       </AppLayout>
     );
   }

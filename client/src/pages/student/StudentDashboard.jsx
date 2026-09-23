@@ -6,6 +6,7 @@ import { User, Award, Download, Building2, BookOpen, Briefcase, Calendar } from 
 import { Link } from 'react-router-dom';
 
 import { downloadPdfFromImage } from '../../utils/pdfDownloader';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 const StudentDashboard = () => {
   const [data, setData] = useState(null);
@@ -49,9 +50,7 @@ const StudentDashboard = () => {
   if (loading) {
     return (
       <AppLayout title="Student Portal">
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <LoadingSpinner message="Loading Student Portal..." />
       </AppLayout>
     );
   }

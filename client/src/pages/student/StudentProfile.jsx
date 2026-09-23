@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import api from '../../services/api';
 import { User, ShieldCheck, Mail, Building2, BookOpen, Briefcase } from 'lucide-react';
 
@@ -28,9 +29,7 @@ const StudentProfile = () => {
   if (loading) {
     return (
       <AppLayout title="My Profile">
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <LoadingSpinner message="Loading Profile..." subtitle="Student Portal" />
       </AppLayout>
     );
   }

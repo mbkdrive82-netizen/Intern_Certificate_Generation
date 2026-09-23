@@ -6,6 +6,7 @@ import { getAssetUrl } from '../../utils/imageUrl';
 import { Award, Download, CheckCircle2, Clock, FileText, ExternalLink } from 'lucide-react';
 
 import { downloadPdfFromImage } from '../../utils/pdfDownloader';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 const StudentCertificate = () => {
   const [data, setData] = useState(null);
@@ -49,9 +50,7 @@ const StudentCertificate = () => {
   if (loading) {
     return (
       <AppLayout title="My Certificate">
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <LoadingSpinner message="Loading Certificate Details..." />
       </AppLayout>
     );
   }

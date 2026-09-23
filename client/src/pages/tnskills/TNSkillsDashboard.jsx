@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import api from '../../services/api';
 import {
   Building2,
@@ -67,12 +68,7 @@ const TNSkillsDashboard = () => {
   if (loading) {
     return (
       <AppLayout title="State Monitoring Dashboard">
-        <div className="flex items-center justify-center h-80">
-          <div className="flex flex-col items-center space-y-3">
-            <div className="w-8 h-8 border-3 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs font-medium text-slate-500">Loading Dashboard...</p>
-          </div>
-        </div>
+        <LoadingSpinner message="Loading State Monitoring Dashboard..." subtitle="Naan Mudhalvan / TNSkills Portal" />
       </AppLayout>
     );
   }

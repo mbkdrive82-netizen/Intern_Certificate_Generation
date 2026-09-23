@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import StatCard from '../../components/ui/StatCard';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import api from '../../services/api';
 import { Building2, Users, Layers, Award, Clock, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -30,9 +31,7 @@ const CollegeDashboard = () => {
   if (loading) {
     return (
       <AppLayout title="College Admin Dashboard">
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <LoadingSpinner message="Loading College Dashboard..." subtitle="College Administration Portal" />
       </AppLayout>
     );
   }
