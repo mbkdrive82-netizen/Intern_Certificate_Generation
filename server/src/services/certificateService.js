@@ -14,18 +14,22 @@ const previewDir = path.join(__dirname, '../../certificates/previews');
 if (!fs.existsSync(certDir)) fs.mkdirSync(certDir, { recursive: true });
 if (!fs.existsSync(previewDir)) fs.mkdirSync(previewDir, { recursive: true });
 
-// Locate local browser executable (Chrome or Edge)
+// Locate browser executable (Chrome on Windows or bundled Chrome on Linux/Render)
 const getBrowserExecutablePath = () => {
-  const candidates = [
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
-  ];
-
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
-  return undefined; // Let puppeteer resolve default
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  return undefined; // Let puppeteer resolve bundled Chrome on Linux / Render
 };
 
 // Generate unique Certificate ID: SMG-2026-000001
