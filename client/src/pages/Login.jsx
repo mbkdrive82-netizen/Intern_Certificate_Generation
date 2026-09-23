@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { User, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
@@ -10,7 +9,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showDemo, setShowDemo] = useState(false);
 
   const { login, getDefaultRoute } = useAuth();
   const navigate = useNavigate();
@@ -268,67 +266,6 @@ const Login = () => {
             )}
           </button>
         </form>
-
-        {/* Demo Credentials */}
-        <div style={{
-          marginTop: '20px',
-          borderTop: '1px solid #e2e8f0',
-          paddingTop: '16px'
-        }}>
-          <button
-            type="button"
-            onClick={() => setShowDemo(!showDemo)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              margin: '0 auto', background: 'none', border: 'none',
-              cursor: 'pointer', color: '#94a3b8', fontSize: '12px',
-              fontWeight: '600', fontFamily: 'inherit'
-            }}
-          >
-            <span>Quick Demo Credentials</span>
-            {showDemo
-              ? <ChevronUp style={{ width: '14px', height: '14px' }} />
-              : <ChevronDown style={{ width: '14px', height: '14px' }} />
-            }
-          </button>
-
-          {showDemo && (
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr',
-              gap: '8px', marginTop: '12px'
-            }}>
-              {[
-                { label: 'SM Admin', sub: 'smadmin', u: 'smadmin', p: 'adminpass', color: '#6366f1' },
-                { label: 'TNSkills Admin', sub: 'tnskillsadmin', u: 'tnskillsadmin', p: 'tnskillspass', color: '#0ea5e9' },
-                { label: 'College Admin', sub: 'avsadmin', u: 'avsadmin', p: 'collegepass', color: '#10b981' },
-                { label: 'Student', sub: 'aakash.r', u: 'aakash.r', p: 'TNS#bF!mC4', color: '#8b5cf6' },
-              ].map(d => (
-                <button
-                  key={d.u}
-                  type="button"
-                  onClick={() => fillCredentials(d.u, d.p)}
-                  style={{
-                    background: '#f8fafc', border: '1.5px solid #e2e8f0',
-                    borderRadius: '10px', padding: '8px 10px',
-                    cursor: 'pointer', textAlign: 'left',
-                    fontFamily: 'inherit', transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = d.color;
-                    e.currentTarget.style.background = '#fff';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.background = '#f8fafc';
-                  }}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>{d.label}</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', marginTop: '2px' }}>{d.sub}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Footer */}
         <p style={{
