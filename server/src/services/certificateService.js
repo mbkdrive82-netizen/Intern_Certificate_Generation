@@ -14,9 +14,9 @@ const previewDir = path.join(__dirname, '../../certificates/previews');
 if (!fs.existsSync(certDir)) fs.mkdirSync(certDir, { recursive: true });
 if (!fs.existsSync(previewDir)) fs.mkdirSync(previewDir, { recursive: true });
 
-// Locate browser executable (Chrome on Windows or bundled Chrome on Linux/Render)
+// Locate browser executable (Chrome on Windows or dynamic search on Linux/Render)
 const getBrowserExecutablePath = () => {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
   if (process.platform === 'win32') {
@@ -28,8 +28,46 @@ const getBrowserExecutablePath = () => {
     for (const p of candidates) {
       if (fs.existsSync(p)) return p;
     }
+  } else {
+    // Linux / Render environment: search common cache locations
+    const searchDirs = [
+      path.join(__dirname, '../../.cache/puppeteer'),
+      '/opt/render/.cache/puppeteer',
+      '/root/.cache/puppeteer',
+      path.join(process.cwd(), '.cache/puppeteer')
+    ];
+
+    const findChromeBinary = (dir) => {
+      try {
+        if (!fs.existsSync(dir)) return null;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            const found = findChromeBinary(full);
+            if (found) return found;
+          } else if (entry.name === 'chrome' || entry.name === 'chromium') {
+            return full;
+          }
+        }
+      } catch (e) {}
+      return null;
+    };
+
+    for (const base of searchDirs) {
+      const found = findChromeBinary(base);
+      if (found) {
+        console.log(`[Puppeteer]: Found Chrome binary at: ${found}`);
+        return found;
+      }
+    }
   }
-  return undefined; // Let puppeteer resolve bundled Chrome on Linux / Render
+
+  try {
+    return puppeteer.executablePath();
+  } catch (e) {
+    return undefined;
+  }
 };
 
 // Generate unique Certificate ID: SMG-2026-000001
