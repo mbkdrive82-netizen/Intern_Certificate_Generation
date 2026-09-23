@@ -24,12 +24,27 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboard();
+    fetchDashboard(false);
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const progRes = await api.get('/admin/certificates/bulk-progress');
+        if (isMounted && progRes.data?.success && progRes.data?.progress?.inProgress) {
+          fetchDashboard(true);
+        }
+      } catch (e) {}
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await api.get('/admin/dashboard');
       if (res.data.success) {
         setData(res.data);
@@ -37,7 +52,7 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error('Failed to load admin dashboard:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

@@ -39,10 +39,36 @@ const AdminCertificates = () => {
 
   // Preview Modal
   const [previewCert, setPreviewCert] = useState(null);
+  const [bulkProgress, setBulkProgress] = useState(null);
 
   useEffect(() => {
     fetchCollegesAndCompanies();
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkProgress = async () => {
+      try {
+        const res = await api.get('/admin/certificates/bulk-progress');
+        if (isMounted && res.data?.success && res.data?.progress) {
+          if (res.data.progress.inProgress) {
+            setBulkProgress(res.data.progress);
+            fetchCertificates(true);
+          } else if (bulkProgress?.inProgress && !res.data.progress.inProgress) {
+            setBulkProgress(null);
+            fetchCertificates(false);
+          }
+        }
+      } catch (e) {}
+    };
+
+    checkProgress();
+    const interval = setInterval(checkProgress, 2000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [bulkProgress?.inProgress]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -64,9 +90,9 @@ const AdminCertificates = () => {
     }
   };
 
-  const fetchCertificates = async () => {
+  const fetchCertificates = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       let query = `/admin/certificates?page=${page}&limit=15`;
       if (search.trim()) query += `&search=${encodeURIComponent(search.trim())}`;
       if (selectedCollege) query += `&collegeId=${selectedCollege}`;
@@ -83,7 +109,7 @@ const AdminCertificates = () => {
     } catch (err) {
       console.error('Failed to fetch certificates:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -138,6 +164,36 @@ const AdminCertificates = () => {
           <span>+ Generate New Batch</span>
         </Link>
       </div>
+
+      {/* Real-time Generation Progress Banner */}
+      {bulkProgress && bulkProgress.inProgress && (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-md space-y-3 animate-pulse">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center space-x-2.5">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+              </span>
+              <span className="font-bold text-sm tracking-wide">
+                ⚡ Generating Certificates in Background: {bulkProgress.currentStudent || 'Processing...'}
+              </span>
+            </div>
+            <span className="text-xs font-mono font-bold bg-white/20 backdrop-blur-md px-3 py-1 rounded-full w-fit">
+              {bulkProgress.current} / {bulkProgress.total} ({bulkProgress.percent}%)
+            </span>
+          </div>
+          <div className="w-full bg-black/20 rounded-full h-2.5 overflow-hidden p-0.5">
+            <div
+              className="bg-white h-full rounded-full transition-all duration-300 shadow-sm"
+              style={{ width: `${bulkProgress.percent}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-xs text-blue-100 font-medium pt-0.5">
+            <span>Company: <strong className="text-white">{bulkProgress.company || 'All'}</strong></span>
+            <span>Generated: <strong className="text-emerald-300">{bulkProgress.successCount || 0}</strong> | Skipped: <strong className="text-amber-200">{bulkProgress.skippedCount || 0}</strong></span>
+          </div>
+        </div>
+      )}
 
       {/* Filter Control Card */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs mb-6 space-y-4">
