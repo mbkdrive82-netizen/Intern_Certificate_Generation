@@ -20,14 +20,19 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getCachedData, setCachedData } from '../../utils/dataCache';
 
 const AdminCertificates = () => {
-  const [certificates, setCertificates] = useState([]);
-  const [colleges, setColleges] = useState([]);
-  const [companies, setCompanies] = useState([]);
+  const cachedCerts = getCachedData('admin_certificates_default');
+  const cachedColleges = getCachedData('admin_colleges_all');
+  const cachedCompanies = getCachedData('admin_companies_list');
+
+  const [certificates, setCertificates] = useState(cachedCerts?.certificates || []);
+  const [colleges, setColleges] = useState(cachedColleges || []);
+  const [companies, setCompanies] = useState(cachedCompanies || []);
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1 });
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState(cachedCerts?.pagination || { total: 0, pages: 1 });
+  const [loading, setLoading] = useState(!cachedCerts);
 
   // Filters State
   const [search, setSearch] = useState('');
@@ -71,10 +76,15 @@ const AdminCertificates = () => {
   }, [bulkProgress?.inProgress]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchCertificates();
-    }, 250);
-    return () => clearTimeout(timer);
+    const isDefault = !search.trim() && !selectedCollege && !selectedDept && !selectedYear && !selectedCompany && !selectedStatus && page === 1;
+    if (isDefault && cachedCerts) {
+      fetchCertificates(true);
+    } else {
+      const timer = setTimeout(() => {
+        fetchCertificates(false);
+      }, search.trim() ? 250 : 0);
+      return () => clearTimeout(timer);
+    }
   }, [page, search, selectedCollege, selectedDept, selectedYear, selectedCompany, selectedStatus]);
 
   const fetchCollegesAndCompanies = async () => {
@@ -83,8 +93,14 @@ const AdminCertificates = () => {
         api.get('/admin/colleges?limit=100'),
         api.get('/admin/companies')
       ]);
-      if (colRes.data.success) setColleges(colRes.data.colleges || []);
-      if (compRes.data.success) setCompanies(compRes.data.companies || []);
+      if (colRes.data.success) {
+        setColleges(colRes.data.colleges || []);
+        setCachedData('admin_colleges_all', colRes.data.colleges || []);
+      }
+      if (compRes.data.success) {
+        setCompanies(compRes.data.companies || []);
+        setCachedData('admin_companies_list', compRes.data.companies || []);
+      }
     } catch (err) {
       console.error('Failed to load filter metadata:', err);
     }
@@ -105,11 +121,14 @@ const AdminCertificates = () => {
       if (res.data.success) {
         setCertificates(res.data.certificates || []);
         setPagination(res.data.pagination || { total: 0, pages: 1 });
+        if (!search.trim() && !selectedCollege && !selectedDept && !selectedYear && !selectedCompany && !selectedStatus && page === 1) {
+          setCachedData('admin_certificates_default', { certificates: res.data.certificates, pagination: res.data.pagination });
+        }
       }
     } catch (err) {
       console.error('Failed to fetch certificates:', err);
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
 

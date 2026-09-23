@@ -5,10 +5,14 @@ import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
 import { getAssetUrl } from '../../utils/imageUrl';
 import { Briefcase, Plus, Image, Upload, CheckCircle2, AlertCircle, ShieldCheck, Trash2, X } from 'lucide-react';
+import { getCachedData, setCachedData } from '../../utils/dataCache';
 
 const AdminCompanies = () => {
-  const [companies, setCompanies] = useState([]);
-  const [smLogoPath, setSmLogoPath] = useState('');
+  const cachedCompanies = getCachedData('admin_companies_list');
+  const cachedSmLogo = getCachedData('admin_sm_logo');
+
+  const [companies, setCompanies] = useState(cachedCompanies || []);
+  const [smLogoPath, setSmLogoPath] = useState(cachedSmLogo || '');
   const [smLogoFile, setSmLogoFile] = useState(null);
   const [savingSmLogo, setSavingSmLogo] = useState(false);
 
@@ -48,6 +52,7 @@ const AdminCompanies = () => {
       const res = await api.get('/admin/companies');
       if (res.data.success) {
         setCompanies(res.data.companies);
+        setCachedData('admin_companies_list', res.data.companies);
       }
     } catch (err) {
       console.error(err);
@@ -59,6 +64,7 @@ const AdminCompanies = () => {
       const res = await api.get('/admin/sm-logo');
       if (res.data.success && res.data.smLogoPath) {
         setSmLogoPath(res.data.smLogoPath);
+        setCachedData('admin_sm_logo', res.data.smLogoPath);
       }
     } catch (err) {
       console.error(err);

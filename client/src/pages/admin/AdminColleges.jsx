@@ -5,6 +5,7 @@ import Pagination from '../../components/ui/Pagination';
 import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
 import { Building2, Plus, Search, Users, Award, ShieldCheck, Copy, Eye, EyeOff, Key, CheckCircle, Download, Trash2, UserX, AlertTriangle } from 'lucide-react';
+import { getCachedData, setCachedData } from '../../utils/dataCache';
 
 // Auto-generate username from college code
 const generateUsername = (code) => {
@@ -29,11 +30,13 @@ const generatePassword = () => {
 };
 
 const AdminColleges = () => {
-  const [colleges, setColleges] = useState([]);
+  const cachedColleges = getCachedData('admin_colleges_list_default');
+
+  const [colleges, setColleges] = useState(cachedColleges?.colleges || []);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState(cachedColleges?.pagination || {});
+  const [loading, setLoading] = useState(!cachedColleges);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,7 +62,8 @@ const AdminColleges = () => {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    fetchColleges();
+    const isDefault = !search.trim() && page === 1;
+    fetchColleges(isDefault && Boolean(cachedColleges));
   }, [page, search]);
 
   // Auto-generate credentials when code changes
@@ -70,13 +74,16 @@ const AdminColleges = () => {
     }
   }, [code]);
 
-  const fetchColleges = async () => {
+  const fetchColleges = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await api.get(`/admin/colleges?page=${page}&limit=10&search=${search}`);
       if (res.data.success) {
         setColleges(res.data.colleges);
         setPagination(res.data.pagination);
+        if (!search.trim() && page === 1) {
+          setCachedData('admin_colleges_list_default', { colleges: res.data.colleges, pagination: res.data.pagination });
+        }
       }
     } catch (err) {
       console.error(err);

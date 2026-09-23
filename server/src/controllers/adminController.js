@@ -16,26 +16,39 @@ const { generateStudentCertificate, generateBulkCertificates: bulkGenCertService
 // GET /api/admin/dashboard
 const getDashboard = async (req, res, next) => {
   try {
-    const totalColleges = await College.countDocuments({ isActive: true });
-    const totalStudents = await Student.countDocuments();
-    const totalCertificates = await Certificate.countDocuments({ status: 'GENERATED' });
-    const totalPendingCertificates = await Student.countDocuments() - totalCertificates;
-    const totalCourses = await Course.countDocuments();
-    const totalCompanies = await Company.countDocuments();
+    const [
+      totalColleges,
+      totalStudents,
+      totalCertificates,
+      totalCourses,
+      totalCompanies,
+      recentColleges,
+      recentStudents,
+      recentCertificates
+    ] = await Promise.all([
+      College.countDocuments({ isActive: true }),
+      Student.countDocuments(),
+      Certificate.countDocuments({ status: 'GENERATED' }),
+      Course.countDocuments(),
+      Company.countDocuments(),
+      College.find().sort({ createdAt: -1 }).limit(5).lean(),
+      Student.find()
+        .populate('collegeId', 'name code')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+      Certificate.find({ status: 'GENERATED' })
+        .select('-previewImagePath')
+        .populate({
+          path: 'studentId',
+          populate: { path: 'collegeId', select: 'name' }
+        })
+        .sort({ generatedAt: -1 })
+        .limit(5)
+        .lean()
+    ]);
 
-    const recentColleges = await College.find().sort({ createdAt: -1 }).limit(5);
-    const recentStudents = await Student.find()
-      .populate('collegeId', 'name code')
-      .sort({ createdAt: -1 })
-      .limit(5);
-    
-    const recentCertificates = await Certificate.find({ status: 'GENERATED' })
-      .populate({
-        path: 'studentId',
-        populate: { path: 'collegeId', select: 'name' }
-      })
-      .sort({ generatedAt: -1 })
-      .limit(5);
+    const totalPendingCertificates = Math.max(0, totalStudents - totalCertificates);
 
     res.json({
       success: true,
@@ -43,7 +56,7 @@ const getDashboard = async (req, res, next) => {
         totalColleges,
         totalStudents,
         totalCertificates,
-        totalPendingCertificates: Math.max(0, totalPendingCertificates),
+        totalPendingCertificates,
         totalCourses,
         totalCompanies
       },
@@ -260,28 +273,38 @@ const getStudents = async (req, res, next) => {
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Student.countDocuments(query);
-    const students = await Student.find(query)
-      .populate('collegeId', 'name code')
-      .populate('userId', 'username')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
 
-    // Map certificates status
-    const studentsWithCert = await Promise.all(
-      students.map(async (st) => {
-        const cert = await Certificate.findOne({ studentId: st._id });
-        const certStatus = cert ? cert.status : 'PENDING';
-        return {
-          ...st.toObject(),
-          certificateStatus: certStatus,
-          certificateId: cert ? cert._id : null
-        };
-      })
-    );
+    const [total, students] = await Promise.all([
+      Student.countDocuments(query),
+      Student.find(query)
+        .populate('collegeId', 'name code')
+        .populate('userId', 'username')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean()
+    ]);
 
-    // Filter by certificateStatus if requested
+    // Batch map certificates status with 1 single query instead of N serial queries
+    const studentIds = students.map(st => st._id);
+    const certs = await Certificate.find({ studentId: { $in: studentIds } })
+      .select('studentId status _id')
+      .lean();
+
+    const certMap = new Map();
+    for (const c of certs) {
+      if (c.studentId) certMap.set(c.studentId.toString(), c);
+    }
+
+    const studentsWithCert = students.map(st => {
+      const cert = certMap.get(st._id.toString());
+      return {
+        ...st,
+        certificateStatus: cert ? cert.status : 'PENDING',
+        certificateId: cert ? cert._id : null
+      };
+    });
+
     let finalStudents = studentsWithCert;
     if (certificateStatus) {
       finalStudents = studentsWithCert.filter(s => s.certificateStatus === certificateStatus);

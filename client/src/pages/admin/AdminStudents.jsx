@@ -24,18 +24,22 @@ import {
   Square
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getCachedData, setCachedData } from '../../utils/dataCache';
 
 const AdminStudents = () => {
-  const [students, setStudents] = useState([]);
-  const [colleges, setColleges] = useState([]);
+  const cachedStudents = getCachedData('admin_students_default');
+  const cachedColleges = getCachedData('admin_colleges_all');
+
+  const [students, setStudents] = useState(cachedStudents?.students || []);
+  const [colleges, setColleges] = useState(cachedColleges || []);
   const [search, setSearch] = useState('');
   const [selectedCollege, setSelectedCollege] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedCertStatus, setSelectedCertStatus] = useState('');
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1 });
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState(cachedStudents?.pagination || { total: 0, pages: 1 });
+  const [loading, setLoading] = useState(!cachedStudents);
 
   // Selection & Delete States
   const [selectedIds, setSelectedIds] = useState([]);
@@ -49,10 +53,15 @@ const AdminStudents = () => {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchStudents();
-    }, 250);
-    return () => clearTimeout(timer);
+    const isDefault = !search.trim() && !selectedCollege && !selectedDept && !selectedYear && !selectedCertStatus && page === 1;
+    if (isDefault && cachedStudents) {
+      fetchStudents(true);
+    } else {
+      const timer = setTimeout(() => {
+        fetchStudents(false);
+      }, search.trim() ? 250 : 0);
+      return () => clearTimeout(timer);
+    }
   }, [page, search, selectedCollege, selectedDept, selectedYear, selectedCertStatus]);
 
   const fetchColleges = async () => {
@@ -60,15 +69,16 @@ const AdminStudents = () => {
       const res = await api.get('/admin/colleges?limit=100');
       if (res.data.success) {
         setColleges(res.data.colleges || []);
+        setCachedData('admin_colleges_all', res.data.colleges || []);
       }
     } catch (e) {
       console.error(e);
     }
   };
 
-  const fetchStudents = async () => {
+  const fetchStudents = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       let query = `/admin/students?page=${page}&limit=15`;
       if (search.trim()) query += `&search=${encodeURIComponent(search.trim())}`;
       if (selectedCollege) query += `&collegeId=${selectedCollege}`;
@@ -81,6 +91,9 @@ const AdminStudents = () => {
         setStudents(res.data.students || []);
         setPagination(res.data.pagination || { total: 0, pages: 1 });
         setSelectedIds([]);
+        if (!search.trim() && !selectedCollege && !selectedDept && !selectedYear && !selectedCertStatus && page === 1) {
+          setCachedData('admin_students_default', { students: res.data.students, pagination: res.data.pagination });
+        }
       }
     } catch (err) {
       console.error(err);

@@ -18,13 +18,15 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getCachedData, setCachedData } from '../../utils/dataCache';
 
 const AdminDashboard = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedData('admin_dashboard');
+  const [data, setData] = useState(cached);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
-    fetchDashboard(false);
+    fetchDashboard(Boolean(cached));
 
     let isMounted = true;
     const interval = setInterval(async () => {
@@ -44,15 +46,16 @@ const AdminDashboard = () => {
 
   const fetchDashboard = async (silent = false) => {
     try {
-      if (!silent) setLoading(true);
+      if (!silent && !cached) setLoading(true);
       const res = await api.get('/admin/dashboard');
       if (res.data.success) {
         setData(res.data);
+        setCachedData('admin_dashboard', res.data);
       }
     } catch (err) {
       console.error('Failed to load admin dashboard:', err);
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
 
