@@ -17,6 +17,9 @@ const studentRoutes = require('./routes/studentRoutes');
 
 const app = express();
 
+// Connect to MongoDB Database
+connectDB();
+
 // Express Middlewares & Full CORS Configuration
 app.use(cors({
   origin: '*',
