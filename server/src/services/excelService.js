@@ -73,6 +73,8 @@ const processStudentExcel = async (filePath, options = {}) => {
     throw new Error('The uploaded Excel file is empty.');
   }
 
+  const totalRows = rawData.length;
+
   // Normalize column names
   const sampleRow = rawData[0];
   const keys = Object.keys(sampleRow);
