@@ -375,7 +375,7 @@ const AdminCertificates = () => {
                           )}
                           {cert.filePath && (
                             <a
-                              href={`/${cert.filePath}`}
+                              href={getAssetUrl(cert.filePath)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors"
@@ -445,7 +445,7 @@ const AdminCertificates = () => {
                 ID: {previewCert.certificateId || previewCert.certificateNumber}
               </span>
               <a
-                href={`/${previewCert.filePath}`}
+                href={getAssetUrl(previewCert.filePath)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all"

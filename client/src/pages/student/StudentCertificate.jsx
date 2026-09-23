@@ -47,7 +47,7 @@ const StudentCertificate = () => {
       console.error('Blob download failed, trying authenticated link:', err);
       const token = localStorage.getItem('token');
       if (token) {
-        window.open(`/api/student/certificate/download?token=${encodeURIComponent(token)}`, '_blank');
+        window.open(getAssetUrl(`/api/student/certificate/download?token=${encodeURIComponent(token)}`), '_blank');
       }
     } finally {
       setDownloading(false);

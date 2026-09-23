@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
+import { getAssetUrl } from '../../utils/imageUrl';
 import { Award, Users, Building2, CheckCircle2, AlertTriangle, ArrowRight, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -324,7 +325,7 @@ const AdminCertificateGenerate = () => {
                 <div className="text-slate-600 pt-1 border-t border-slate-200/60">
                   <p>Certificate ID: <strong className="text-slate-900 font-mono">{singleResult.certificate.certificateId}</strong></p>
                   <a
-                    href={`/${singleResult.certificate.filePath}`}
+                    href={getAssetUrl(singleResult.certificate.filePath)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-600 hover:text-blue-800 hover:underline font-bold mt-1.5 inline-flex items-center space-x-1"

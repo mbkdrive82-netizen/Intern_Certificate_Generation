@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import Badge from '../../components/ui/Badge';
 import api from '../../services/api';
+import { getAssetUrl } from '../../utils/imageUrl';
 import {
   Building2,
   Users,
@@ -268,7 +269,7 @@ const AdminDashboard = () => {
                           <td className="px-4 py-3.5 text-right">
                             {cert.filePath ? (
                               <a
-                                href={`/${cert.filePath}`}
+                                href={getAssetUrl(cert.filePath)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] transition-colors border border-blue-200"
