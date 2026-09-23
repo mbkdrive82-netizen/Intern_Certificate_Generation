@@ -7,9 +7,13 @@ const {
   getColleges,
   createCollege,
   updateCollege,
+  deleteCollege,
+  deleteCollegeStudents,
   resetCollegeCredentials,
   getStudents,
   getStudentById,
+  deleteStudent,
+  bulkDeleteStudents,
   uploadStudentsExcel,
   downloadSampleExcel,
   exportStudentCredentials,
@@ -41,13 +45,17 @@ router.get('/dashboard', getDashboard);
 router.get('/colleges', getColleges);
 router.post('/colleges', createCollege);
 router.put('/colleges/:id', updateCollege);
+router.delete('/colleges/:id', deleteCollege);
+router.delete('/colleges/:id/students', deleteCollegeStudents);
 router.post('/colleges/:id/reset-credentials', resetCollegeCredentials);
 
 // Students & Excel Upload
 router.get('/students', getStudents);
 router.get('/students/sample-excel', downloadSampleExcel);
 router.get('/students/credentials/export', exportStudentCredentials);
+router.post('/students/bulk-delete', bulkDeleteStudents);
 router.get('/students/:id', getStudentById);
+router.delete('/students/:id', deleteStudent);
 router.post('/students/upload', upload.single('excelFile'), uploadStudentsExcel);
 
 // SM GROUPS Master Logo

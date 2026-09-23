@@ -4,7 +4,7 @@ import Modal from '../../components/ui/Modal';
 import Pagination from '../../components/ui/Pagination';
 import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
-import { Building2, Plus, Search, Users, Award, ShieldCheck, Copy, Eye, EyeOff, Key, CheckCircle, Download } from 'lucide-react';
+import { Building2, Plus, Search, Users, Award, ShieldCheck, Copy, Eye, EyeOff, Key, CheckCircle, Download, Trash2, UserX, AlertTriangle } from 'lucide-react';
 
 // Auto-generate username from college code
 const generateUsername = (code) => {
@@ -43,6 +43,10 @@ const AdminColleges = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Delete Modals State
+  const [deleteStudentsModal, setDeleteStudentsModal] = useState({ isOpen: false, college: null, loading: false });
+  const [deleteCollegeModal, setDeleteCollegeModal] = useState({ isOpen: false, college: null, loading: false });
 
   // Success modal with credentials display
   const [createdCredentials, setCreatedCredentials] = useState(null);
@@ -143,6 +147,38 @@ const AdminColleges = () => {
       setToast({ message: err.response?.data?.message || 'Failed to reset credentials', type: 'error' });
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDeleteCollegeStudents = async () => {
+    if (!deleteStudentsModal.college) return;
+    try {
+      setDeleteStudentsModal(prev => ({ ...prev, loading: true }));
+      const res = await api.delete(`/admin/colleges/${deleteStudentsModal.college._id}/students`);
+      if (res.data.success) {
+        setToast({ message: res.data.message || 'All students deleted successfully', type: 'success' });
+        setDeleteStudentsModal({ isOpen: false, college: null, loading: false });
+        fetchColleges();
+      }
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to delete students', type: 'error' });
+      setDeleteStudentsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleDeleteCollege = async () => {
+    if (!deleteCollegeModal.college) return;
+    try {
+      setDeleteCollegeModal(prev => ({ ...prev, loading: true }));
+      const res = await api.delete(`/admin/colleges/${deleteCollegeModal.college._id}`);
+      if (res.data.success) {
+        setToast({ message: res.data.message || 'College deleted successfully', type: 'success' });
+        setDeleteCollegeModal({ isOpen: false, college: null, loading: false });
+        fetchColleges();
+      }
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to delete college', type: 'error' });
+      setDeleteCollegeModal(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -248,19 +284,38 @@ const AdminColleges = () => {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <button
-                        onClick={() => resetAndDownload(col)}
-                        disabled={downloadingId === col._id}
-                        title="Reset password & download credentials"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                      >
-                        {downloadingId === col._id ? (
-                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5" />
-                        )}
-                        {downloadingId === col._id ? 'Resetting...' : 'Download CSV'}
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => resetAndDownload(col)}
+                          disabled={downloadingId === col._id}
+                          title="Reset password & download credentials"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                        >
+                          {downloadingId === col._id ? (
+                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                          <span className="hidden sm:inline">{downloadingId === col._id ? 'Resetting...' : 'CSV'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => setDeleteStudentsModal({ isOpen: true, college: col, loading: false })}
+                          title={`Delete all ${col.studentCount || 0} students enrolled in ${col.name}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 hover:text-amber-800 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          <UserX className="w-3.5 h-3.5" />
+                          <span className="hidden xl:inline">Clear Students</span>
+                        </button>
+
+                        <button
+                          onClick={() => setDeleteCollegeModal({ isOpen: true, college: col, loading: false })}
+                          title={`Delete ${col.name} college & all data`}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -476,6 +531,114 @@ const AdminColleges = () => {
           </div>
         </div>
       )}
+
+      {/* Delete All Students of College Modal */}
+      <Modal
+        isOpen={deleteStudentsModal.isOpen}
+        onClose={() => !deleteStudentsModal.loading && setDeleteStudentsModal({ isOpen: false, college: null, loading: false })}
+        title="Clear All Students for College"
+      >
+        {deleteStudentsModal.college && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+              <div className="flex items-center space-x-2 font-bold text-amber-800 text-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>Permanent Student Deletion Warning</span>
+              </div>
+              <p>
+                Are you sure you want to delete all <strong>{deleteStudentsModal.college.studentCount || 0}</strong> enrolled students for <strong className="text-slate-900">{deleteStudentsModal.college.name} ({deleteStudentsModal.college.code})</strong>?
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-amber-800 font-medium pt-1">
+                <li>All student records will be removed from database</li>
+                <li>All student login accounts will be deleted</li>
+                <li>All issued PDF certificates & visual previews will be cleaned up</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                disabled={deleteStudentsModal.loading}
+                onClick={() => setDeleteStudentsModal({ isOpen: false, college: null, loading: false })}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteStudentsModal.loading}
+                onClick={handleDeleteCollegeStudents}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50"
+              >
+                {deleteStudentsModal.loading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting Students...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Delete All Students</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Entire College Modal */}
+      <Modal
+        isOpen={deleteCollegeModal.isOpen}
+        onClose={() => !deleteCollegeModal.loading && setDeleteCollegeModal({ isOpen: false, college: null, loading: false })}
+        title="Delete College"
+      >
+        {deleteCollegeModal.college && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs space-y-2">
+              <div className="flex items-center space-x-2 font-bold text-red-800 text-sm">
+                <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                <span>Delete College & All Associated Data</span>
+              </div>
+              <p>
+                Are you sure you want to permanently delete <strong className="text-slate-900">{deleteCollegeModal.college.name} ({deleteCollegeModal.college.code})</strong>?
+              </p>
+              <p className="font-semibold text-red-800">
+                This will delete the college, its administrator login account, and all {deleteCollegeModal.college.studentCount || 0} students and their certificates. This action cannot be reversed.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                disabled={deleteCollegeModal.loading}
+                onClick={() => setDeleteCollegeModal({ isOpen: false, college: null, loading: false })}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteCollegeModal.loading}
+                onClick={handleDeleteCollege}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50"
+              >
+                {deleteCollegeModal.loading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting College...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Delete College</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </AppLayout>
   );
 };

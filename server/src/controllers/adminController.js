@@ -821,14 +821,252 @@ const uploadSmLogo = async (req, res, next) => {
   }
 };
 
+// DELETE /api/admin/colleges/:id/students
+const deleteCollegeStudents = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const college = await College.findById(id);
+    if (!college) {
+      return res.status(404).json({ success: false, message: 'College not found' });
+    }
+
+    const students = await Student.find({ collegeId: id });
+    if (students.length === 0) {
+      return res.json({ success: true, message: 'No students found for this college to delete', count: 0 });
+    }
+
+    const studentIds = students.map(s => s._id);
+    const userIds = students.map(s => s.userId).filter(Boolean);
+
+    // 1. Find certificates and delete files from disk
+    const certs = await Certificate.find({ studentId: { $in: studentIds } });
+    for (const cert of certs) {
+      if (cert.filePath) {
+        const fullPdfPath = path.isAbsolute(cert.filePath)
+          ? cert.filePath
+          : path.join(__dirname, '../../', cert.filePath);
+        if (fs.existsSync(fullPdfPath)) {
+          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
+        }
+      }
+      if (cert.previewImagePath) {
+        const fullPngPath = path.isAbsolute(cert.previewImagePath)
+          ? cert.previewImagePath
+          : path.join(__dirname, '../../', cert.previewImagePath);
+        if (fs.existsSync(fullPngPath)) {
+          try { fs.unlinkSync(fullPngPath); } catch (e) {}
+        }
+      }
+    }
+
+    // 2. Delete certificates from DB
+    await Certificate.deleteMany({ studentId: { $in: studentIds } });
+
+    // 3. Delete student user logins from DB
+    if (userIds.length > 0) {
+      await User.deleteMany({ _id: { $in: userIds } });
+    }
+
+    // 4. Delete student records from DB
+    await Student.deleteMany({ collegeId: id });
+
+    // 5. Update College student count
+    college.totalStudents = 0;
+    await college.save();
+
+    res.json({
+      success: true,
+      message: `Successfully deleted all ${students.length} students, logins, and certificates for ${college.name}.`,
+      deletedCount: students.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/admin/students/:id
+const deleteStudent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const student = await Student.findById(id);
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    // 1. Delete associated certificates and files
+    const certs = await Certificate.find({ studentId: student._id });
+    for (const cert of certs) {
+      if (cert.filePath) {
+        const fullPdfPath = path.isAbsolute(cert.filePath)
+          ? cert.filePath
+          : path.join(__dirname, '../../', cert.filePath);
+        if (fs.existsSync(fullPdfPath)) {
+          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
+        }
+      }
+      if (cert.previewImagePath) {
+        const fullPngPath = path.isAbsolute(cert.previewImagePath)
+          ? cert.previewImagePath
+          : path.join(__dirname, '../../', cert.previewImagePath);
+        if (fs.existsSync(fullPngPath)) {
+          try { fs.unlinkSync(fullPngPath); } catch (e) {}
+        }
+      }
+    }
+    await Certificate.deleteMany({ studentId: student._id });
+
+    // 2. Delete User login account
+    if (student.userId) {
+      await User.findByIdAndDelete(student.userId);
+    }
+
+    // 3. Delete Student record
+    await Student.findByIdAndDelete(student._id);
+
+    // 4. Update College total count
+    const remainingCount = await Student.countDocuments({ collegeId: student.collegeId });
+    await College.findByIdAndUpdate(student.collegeId, { totalStudents: remainingCount });
+
+    res.json({
+      success: true,
+      message: `Student "${student.name}" and associated records deleted successfully.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/admin/students/bulk-delete
+const bulkDeleteStudents = async (req, res, next) => {
+  try {
+    const { studentIds } = req.body;
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please provide an array of student IDs to delete' });
+    }
+
+    const students = await Student.find({ _id: { $in: studentIds } });
+    if (students.length === 0) {
+      return res.status(404).json({ success: false, message: 'No students found with provided IDs' });
+    }
+
+    const validIds = students.map(s => s._id);
+    const userIds = students.map(s => s.userId).filter(Boolean);
+    const affectedCollegeIds = [...new Set(students.map(s => s.collegeId.toString()))];
+
+    // Delete cert files and documents
+    const certs = await Certificate.find({ studentId: { $in: validIds } });
+    for (const cert of certs) {
+      if (cert.filePath) {
+        const fullPdfPath = path.isAbsolute(cert.filePath)
+          ? cert.filePath
+          : path.join(__dirname, '../../', cert.filePath);
+        if (fs.existsSync(fullPdfPath)) {
+          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
+        }
+      }
+      if (cert.previewImagePath) {
+        const fullPngPath = path.isAbsolute(cert.previewImagePath)
+          ? cert.previewImagePath
+          : path.join(__dirname, '../../', cert.previewImagePath);
+        if (fs.existsSync(fullPngPath)) {
+          try { fs.unlinkSync(fullPngPath); } catch (e) {}
+        }
+      }
+    }
+    await Certificate.deleteMany({ studentId: { $in: validIds } });
+
+    // Delete user logins
+    if (userIds.length > 0) {
+      await User.deleteMany({ _id: { $in: userIds } });
+    }
+
+    // Delete students
+    await Student.deleteMany({ _id: { $in: validIds } });
+
+    // Update college counts
+    for (const colId of affectedCollegeIds) {
+      const cnt = await Student.countDocuments({ collegeId: colId });
+      await College.findByIdAndUpdate(colId, { totalStudents: cnt });
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully deleted ${students.length} students.`,
+      deletedCount: students.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/admin/colleges/:id
+const deleteCollege = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const college = await College.findById(id);
+    if (!college) {
+      return res.status(404).json({ success: false, message: 'College not found' });
+    }
+
+    // 1. Delete all students of this college
+    const students = await Student.find({ collegeId: id });
+    const studentIds = students.map(s => s._id);
+    const userIds = students.map(s => s.userId).filter(Boolean);
+
+    const certs = await Certificate.find({ studentId: { $in: studentIds } });
+    for (const cert of certs) {
+      if (cert.filePath) {
+        const fullPdfPath = path.isAbsolute(cert.filePath)
+          ? cert.filePath
+          : path.join(__dirname, '../../', cert.filePath);
+        if (fs.existsSync(fullPdfPath)) {
+          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
+        }
+      }
+      if (cert.previewImagePath) {
+        const fullPngPath = path.isAbsolute(cert.previewImagePath)
+          ? cert.previewImagePath
+          : path.join(__dirname, '../../', cert.previewImagePath);
+        if (fs.existsSync(fullPngPath)) {
+          try { fs.unlinkSync(fullPngPath); } catch (e) {}
+        }
+      }
+    }
+    await Certificate.deleteMany({ studentId: { $in: studentIds } });
+    if (userIds.length > 0) {
+      await User.deleteMany({ _id: { $in: userIds } });
+    }
+    await Student.deleteMany({ collegeId: id });
+
+    // 2. Delete College Admin user
+    if (college.adminUserId) {
+      await User.findByIdAndDelete(college.adminUserId);
+    }
+
+    // 3. Delete College document
+    await College.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: `College "${college.name}" and all associated students & certificates deleted successfully.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboard,
   getColleges,
   createCollege,
   updateCollege,
+  deleteCollege,
+  deleteCollegeStudents,
   resetCollegeCredentials,
   getStudents,
   getStudentById,
+  deleteStudent,
+  bulkDeleteStudents,
   uploadStudentsExcel,
   downloadSampleExcel,
   exportStudentCredentials,
