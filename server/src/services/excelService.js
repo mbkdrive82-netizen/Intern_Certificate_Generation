@@ -75,22 +75,53 @@ const processStudentExcel = async (filePath, options = {}) => {
 
   const totalRows = rawData.length;
 
-  // Normalize column names
-  const sampleRow = rawData[0];
-  const keys = Object.keys(sampleRow);
-  
-  const getVal = (row, fieldName) => {
-    const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === fieldName.toLowerCase());
-    return foundKey ? String(row[foundKey]).trim() : '';
+  // Smart Synonyms Dictionary for effortless Excel uploads
+  const synonyms = {
+    name: ['name', 'full name', 'student name', 'candidate name', 'student_name', 'candidate', 'student'],
+    college: ['college', 'college name', 'institution', 'college_name', 'institute', 'clg name'],
+    department: ['department', 'dept', 'branch', 'department name', 'stream', 'discipline', 'course branch'],
+    year: ['year', 'year of study', 'semester', 'sem', 'class', 'academic year'],
+    company: ['company', 'company name', 'sub company', 'partner', 'partner company', 'training partner', 'sub-company'],
+    course: ['course', 'course name', 'internship domain', 'domain', 'training topic', 'topic', 'training module']
   };
 
-  const requiredCols = ['Name', 'College', 'Department', 'Year', 'Company', 'Course'];
-  const missingCols = requiredCols.filter(col => {
-    return !keys.some(k => k.trim().toLowerCase() === col.toLowerCase());
-  });
+  const getFieldKey = (fieldName) => {
+    const list = synonyms[fieldName.toLowerCase()] || [fieldName.toLowerCase()];
+    return keys.find(k => {
+      const cleanK = k.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      return list.some(syn => {
+        const cleanSyn = syn.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cleanK === cleanSyn || cleanK.includes(cleanSyn) || cleanSyn.includes(cleanK);
+      });
+    });
+  };
+
+  const getVal = (row, fieldName) => {
+    const matchedKey = getFieldKey(fieldName);
+    if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
+      let val = String(row[matchedKey]).trim();
+      // Auto-convert semester number to Year roman numerals if checking 'Year'
+      if (fieldName.toLowerCase() === 'year') {
+        const semNum = parseInt(val, 10);
+        if (semNum === 1 || semNum === 2) return 'I';
+        if (semNum === 3 || semNum === 4) return 'II';
+        if (semNum === 5 || semNum === 6) return 'III';
+        if (semNum === 7 || semNum === 8) return 'IV';
+        if (/^[1-4]$/.test(val)) {
+          const romans = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV' };
+          return romans[val] || val;
+        }
+      }
+      return val;
+    }
+    return '';
+  };
+
+  const requiredCols = ['name', 'department', 'year'];
+  const missingCols = requiredCols.filter(col => !getFieldKey(col));
 
   if (missingCols.length > 0) {
-    throw new Error(`Missing required Excel columns: ${missingCols.join(', ')}. Required: Name, College, Department, Year, Company, Course`);
+    throw new Error(`Excel sheet missing required columns for: ${missingCols.join(', ')}. Please include Name, Department/Branch, Year/Semester.`);
   }
 
   // 1. Pre-fetch in-memory caches to avoid N+1 DB roundtrips
@@ -168,19 +199,29 @@ const processStudentExcel = async (filePath, options = {}) => {
     const rowNumber = i + 2; // Row 1 is header
 
     const name = getVal(row, 'Name');
-    const collegeName = getVal(row, 'College');
-    const department = getVal(row, 'Department');
-    const year = getVal(row, 'Year');
-    const companyName = getVal(row, 'Company');
-    const courseName = getVal(row, 'Course');
+    let collegeName = getVal(row, 'College');
+    let department = getVal(row, 'Department') || 'ECE';
+    let year = getVal(row, 'Year') || 'IV';
+    let companyName = getVal(row, 'Company');
+    let courseName = getVal(row, 'Course') || 'IoT Application (ESP32)';
+
+    // Smart fallback if company or college is empty
+    if (!companyName) {
+      const defaultComp = allCompanies.length > 0 ? allCompanies[0].name : 'SRI TECH';
+      companyName = defaultComp;
+    }
+    if (!collegeName) {
+      const defaultCol = allColleges.length > 0 ? allColleges[0].name : 'AVS Engineering College';
+      collegeName = defaultCol;
+    }
 
     // Row validation
-    if (!name || !collegeName || !department || !year || !companyName || !courseName) {
+    if (!name) {
       failed++;
       failedRows.push({
         rowNumber,
-        studentName: name || 'N/A',
-        reason: 'Missing one or more required fields (Name, College, Department, Year, Company, Course)'
+        studentName: 'N/A',
+        reason: 'Student Name is required'
       });
       continue;
     }
