@@ -98,26 +98,35 @@ const downloadCertificate = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Student profile not found' });
     }
 
-    const certificate = await Certificate.findOne({
-      studentId: student._id,
-      status: 'GENERATED'
+    let certificate = await Certificate.findOne({
+      studentId: student._id
     });
 
-    if (!certificate || !certificate.filePath) {
+    if (!certificate) {
       return res.status(404).json({
         success: false,
         message: 'No generated certificate found for your account'
       });
     }
 
-    const absolutePath = path.isAbsolute(certificate.filePath)
-      ? certificate.filePath
-      : path.join(__dirname, '../../', certificate.filePath);
+    let absolutePath = certificate.filePath
+      ? (path.isAbsolute(certificate.filePath) ? certificate.filePath : path.join(__dirname, '../../', certificate.filePath))
+      : null;
+
+    // If PDF file is missing on server disk (e.g. Render restarted), regenerate it instantly on-the-fly!
+    if (!absolutePath || !fs.existsSync(absolutePath)) {
+      const { generateStudentCertificate } = require('../services/certificateService');
+      const genResult = await generateStudentCertificate(student._id, { regenerate: true });
+      certificate = genResult.certificate;
+      absolutePath = path.isAbsolute(certificate.filePath)
+        ? certificate.filePath
+        : path.join(__dirname, '../../', certificate.filePath);
+    }
 
     if (!fs.existsSync(absolutePath)) {
-      return res.status(404).json({
+      return res.status(500).json({
         success: false,
-        message: 'Certificate PDF file is missing on server'
+        message: 'Failed to generate certificate PDF file'
       });
     }
 

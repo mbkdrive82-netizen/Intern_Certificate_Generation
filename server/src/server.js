@@ -31,8 +31,42 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static Asset Directories
+// Static Asset Directories & Dynamic On-Demand Certificate Delivery
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Dynamic On-Demand PDF handler if file does not exist on disk
+app.get('/certificates/:filename', async (req, res, next) => {
+  const filePath = path.join(__dirname, '../certificates', req.params.filename);
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+
+  try {
+    const filename = req.params.filename;
+    const match = filename.match(/SMG-\d+-\d+/i);
+    const Certificate = require('./models/Certificate');
+    const { generateStudentCertificate } = require('./services/certificateService');
+
+    let cert = null;
+    if (match) {
+      cert = await Certificate.findOne({ certificateId: new RegExp(`^${match[0]}$`, 'i') });
+    }
+    if (!cert) {
+      cert = await Certificate.findOne({ filePath: new RegExp(filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') });
+    }
+
+    if (cert && cert.studentId) {
+      await generateStudentCertificate(cert.studentId, { regenerate: true });
+      if (fs.existsSync(filePath)) {
+        return res.sendFile(filePath);
+      }
+    }
+  } catch (err) {
+    console.error('[On-demand PDF generator error]:', err);
+  }
+  next();
+});
+
 app.use('/certificates', express.static(path.join(__dirname, '../certificates')));
 
 // API Routes
