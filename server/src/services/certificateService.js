@@ -94,7 +94,7 @@ const generateNextCertificateId = async () => {
 /**
  * Programmatically generate high-quality HTML/CSS/SVG Certificate PDF & PNG via Puppeteer
  */
-const generateStudentCertificate = async (studentId, options = {}, existingBrowser = null) => {
+const generateStudentCertificate = async (studentId, options = {}, existingBrowser = null, existingPage = null) => {
   const { templateId, regenerate = false } = options;
 
   // 1. Fetch Student
@@ -204,10 +204,12 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
   const pngFilePath = path.join(previewDir, pngFilename);
 
   try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
-    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await new Promise(r => setTimeout(r, 800));
+    const page = existingPage || (await browser.newPage());
+    if (!existingPage) {
+      await page.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+    }
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await new Promise(r => setTimeout(r, 60));
 
     // Generate High-Quality A4 Landscape PDF
     await page.pdf({
@@ -226,7 +228,9 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
       fullPage: false
     });
 
-    await page.close();
+    if (!existingPage) {
+      await page.close();
+    }
 
     if (closeBrowserOnFinish && browser) {
       await browser.close();
@@ -351,7 +355,7 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
     failedCount: 0
   };
 
-  // Launch browser ONCE for the entire batch for maximum performance
+  // Launch browser ONCE for the entire batch with ultra-lightweight flags for Render Free Tier (512MB RAM)
   const executablePath = getBrowserExecutablePath();
   const batchBrowser = await puppeteer.launch({
     executablePath,
@@ -361,11 +365,23 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-extensions',
+      '--disable-sync',
+      '--js-flags="--max-old-space-size=128"'
     ]
   });
 
+  let batchPage = null;
   try {
+    batchPage = await batchBrowser.newPage();
+    await batchPage.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+
     for (let i = 0; i < students.length; i++) {
       const student = students[i];
       bulkProgress.current = i + 1;
@@ -373,7 +389,7 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
       bulkProgress.percent = Math.round(((i + 1) / students.length) * 100);
 
       try {
-        const res = await generateStudentCertificate(student._id, options, batchBrowser);
+        const res = await generateStudentCertificate(student._id, options, batchBrowser, batchPage);
         if (res.alreadyGenerated) {
           skippedCount++;
         } else {
@@ -393,6 +409,9 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
       bulkProgress.failedCount = failedCount;
     }
   } finally {
+    if (batchPage) {
+      try { await batchPage.close(); } catch (e) {}
+    }
     bulkProgress.inProgress = false;
     bulkProgress.lastResult = {
       totalTargeted: students.length,
