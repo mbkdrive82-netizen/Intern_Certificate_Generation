@@ -214,7 +214,11 @@ const AdminCertificateGenerate = () => {
 
   // Dynamic Target Calculation
   const filteredStudents = students.filter(st => {
-    if (bulkCompany && st.company !== bulkCompany) return false;
+    if (bulkCompany) {
+      const normBulk = (bulkCompany || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normStud = (st.company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (normBulk !== normStud && !normBulk.includes(normStud) && !normStud.includes(normBulk)) return false;
+    }
     if (bulkCollegeId && String(st.collegeId?._id || st.collegeId) !== String(bulkCollegeId)) return false;
     if (bulkDepartment && st.department !== bulkDepartment) return false;
     if (bulkYear && st.year !== bulkYear) return false;

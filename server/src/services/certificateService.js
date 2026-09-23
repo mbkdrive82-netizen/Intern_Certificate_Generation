@@ -113,9 +113,27 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
     };
   }
 
+  // Helper for flexible company matching (handles "SRI TECH" <=> "SRITECH", case/spaces)
+  const findMatchingCompany = async (compName) => {
+    if (!compName) return null;
+    const trimmed = String(compName).trim();
+    let comp = await Company.findOne({ name: new RegExp(`^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+    if (comp) return comp;
+
+    const all = await Company.find();
+    const cleanTarget = trimmed.toLowerCase().replace(/[^a-z0-9]/g, '');
+    comp = all.find(c => {
+      const cleanName = (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanName === cleanTarget || cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName);
+    });
+    if (comp) return comp;
+    if (all.length === 1) return all[0];
+    return null;
+  };
+
   // 3. Fetch related records
   let template = templateId ? await CertificateTemplate.findById(templateId) : await CertificateTemplate.findOne({ isActive: true });
-  const company = await Company.findOne({ name: new RegExp(`^${student.company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+  const company = await findMatchingCompany(student.company);
   const course = await Course.findOne({ name: new RegExp(`^${student.course.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
 
   // 4. Determine Certificate ID
@@ -287,7 +305,10 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
   if (filter.collegeId) query.collegeId = filter.collegeId;
   if (filter.department) query.department = filter.department;
   if (filter.year) query.year = filter.year;
-  if (filter.company) query.company = new RegExp(`^${filter.company.trim()}$`, 'i');
+  if (filter.company) {
+    const cleanComp = filter.company.trim().replace(/\s+/g, '\\s*');
+    query.company = new RegExp(`^${cleanComp}$`, 'i');
+  }
   if (filter.course) query.course = new RegExp(`^${filter.course.trim()}$`, 'i');
 
   const students = await Student.find(query);
