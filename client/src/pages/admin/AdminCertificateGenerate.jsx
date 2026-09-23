@@ -155,9 +155,9 @@ const AdminCertificateGenerate = () => {
           }
         }
       } catch (err) {
-        // silent polling error
+        // silent network poll retry
       }
-    }, 350);
+    }, 1000);
   };
 
   const handleBulkGenerate = async (e) => {
@@ -169,12 +169,12 @@ const AdminCertificateGenerate = () => {
       current: 0,
       total: 0,
       percent: 0,
-      currentStudent: 'Preparing generation engine...',
+      currentStudent: 'Starting background generation engine...',
       successCount: 0,
       skippedCount: 0
     });
 
-    // Start polling immediately
+    // Start polling progress immediately
     startPolling();
 
     try {
@@ -187,28 +187,17 @@ const AdminCertificateGenerate = () => {
         regenerate: bulkRegenerate
       });
 
-      if (res.data.success) {
-        setBulkResult(res.data.result);
-        setToast({
-          message: `Bulk generation complete: ${res.data.result.successCount} generated, ${res.data.result.skippedCount} skipped!`,
-          type: 'success'
-        });
+      if (!res.data.success) {
+        setToast({ message: res.data?.message || 'Failed to start generation', type: 'error' });
+        setBulkSubmitting(false);
       }
     } catch (err) {
-      setToast({ message: err.response?.data?.message || 'Failed bulk certificate generation', type: 'error' });
-    } finally {
-      // Fetch final progress snapshot
-      try {
-        const finalRes = await api.get('/admin/certificates/bulk-progress');
-        if (finalRes.data?.progress && !finalRes.data.progress.inProgress) {
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-            pollIntervalRef.current = null;
-          }
-          setBulkSubmitting(false);
-          setBulkProgress(finalRes.data.progress);
-        }
-      } catch (err) {}
+      setToast({ message: err.response?.data?.message || 'Failed bulk certificate generation request', type: 'error' });
+      setBulkSubmitting(false);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     }
   };
 

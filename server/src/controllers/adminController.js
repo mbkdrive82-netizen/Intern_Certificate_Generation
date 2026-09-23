@@ -687,12 +687,29 @@ const generateBulkCertificatesController = async (req, res, next) => {
     if (company) filter.company = company;
     if (course) filter.course = course;
 
-    const result = await bulkGenCertService(filter, {
+    // Check if bulk generation is already running
+    const currentProgress = getBulkProgress();
+    if (currentProgress.inProgress) {
+      return res.json({
+        success: true,
+        inProgress: true,
+        message: 'Bulk generation is already in progress.'
+      });
+    }
+
+    // Launch asynchronously in background so Render/browsers never timeout or drop connection
+    bulkGenCertService(filter, {
       templateId,
       regenerate: regenerate === true || regenerate === 'true'
+    }).catch(err => {
+      console.error('[Bulk Generation Async Engine Error]:', err);
     });
 
-    res.json({ success: true, result });
+    res.json({
+      success: true,
+      inProgress: true,
+      message: 'Bulk generation started successfully in background.'
+    });
   } catch (error) {
     next(error);
   }

@@ -2,10 +2,13 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 const Student = require('../models/Student');
+const College = require('../models/College');
 const Certificate = require('../models/Certificate');
 const CertificateTemplate = require('../models/CertificateTemplate');
 const Company = require('../models/Company');
 const Course = require('../models/Course');
+const Setting = require('../models/Setting');
+const User = require('../models/User');
 const { buildCertificateData, renderCertificateHtml } = require('../certificates/templates/certificateTemplate');
 
 const certDir = path.join(__dirname, '../../certificates');
@@ -221,12 +224,16 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
       margin: { top: 0, right: 0, bottom: 0, left: 0 }
     });
 
-    // Generate Real High-Resolution PNG Preview
-    await page.screenshot({
-      path: pngFilePath,
-      type: 'png',
-      fullPage: false
+    // Generate Real High-Resolution JPEG Preview & Base64 URI for permanent persistent storage
+    const previewBuffer = await page.screenshot({
+      type: 'jpeg',
+      quality: 85
     });
+    const base64Preview = `data:image/jpeg;base64,${previewBuffer.toString('base64')}`;
+
+    try {
+      fs.writeFileSync(pngFilePath, previewBuffer);
+    } catch (e) {}
 
     if (!existingPage) {
       await page.close();
@@ -236,15 +243,14 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
       await browser.close();
     }
 
-    // 8. Quality check (Section 88 & 95)
+    // 8. Quality check
     if (!fs.existsSync(pdfFilePath) || fs.statSync(pdfFilePath).size === 0) {
       throw new Error('Generated PDF file validation failed: file is missing or zero bytes');
     }
 
     const relativePdfPath = path.join('certificates', pdfFilename).replace(/\\/g, '/');
-    const relativePngPath = path.join('certificates', 'previews', pngFilename).replace(/\\/g, '/');
 
-    // 9. Update or Create MongoDB record
+    // 9. Update or Create MongoDB record with permanent Base64 preview
     if (!existingCert) {
       existingCert = new Certificate({
         certificateId,
@@ -253,14 +259,14 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
         companyId: company ? company._id : null,
         courseId: course ? course._id : null,
         filePath: relativePdfPath,
-        previewImagePath: relativePngPath,
+        previewImagePath: base64Preview,
         status: 'GENERATED',
         generatedAt: new Date()
       });
     } else {
       existingCert.certificateId = certificateId;
       existingCert.filePath = relativePdfPath;
-      existingCert.previewImagePath = relativePngPath;
+      existingCert.previewImagePath = base64Preview;
       existingCert.status = 'GENERATED';
       existingCert.errorMessage = '';
       existingCert.generatedAt = new Date();
@@ -271,7 +277,7 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
     return {
       certificate: existingCert,
       alreadyGenerated: false,
-      message: 'Professional HTML/CSS certificate generated successfully via Puppeteer.'
+      message: 'Professional HTML/CSS certificate generated successfully.'
     };
   } catch (err) {
     if (closeBrowserOnFinish && browser) await browser.close();
@@ -404,10 +410,13 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
         });
       }
 
-      bulkProgress.successCount = successCount;
-      bulkProgress.skippedCount = skippedCount;
-      bulkProgress.failedCount = failedCount;
-    }
+        bulkProgress.successCount = successCount;
+        bulkProgress.skippedCount = skippedCount;
+        bulkProgress.failedCount = failedCount;
+
+        // Micro-yield to allow Express event loop to handle concurrent polling requests instantly
+        await new Promise(r => setTimeout(r, 40));
+      }
   } finally {
     if (batchPage) {
       try { await batchPage.close(); } catch (e) {}
