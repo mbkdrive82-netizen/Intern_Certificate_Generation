@@ -1,4 +1,9 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {}
 
 const connectDB = async () => {
   const defaultAtlasUri = 'mongodb+srv://thesmgroups43_db_user:fJuUt90QnQX9SV0n@cluster0.bohnbd6.mongodb.net/tnskills_db?retryWrites=true&w=majority&appName=Cluster0';
