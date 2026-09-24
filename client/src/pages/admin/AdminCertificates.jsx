@@ -45,7 +45,27 @@ const AdminCertificates = () => {
 
   // Preview Modal
   const [previewCert, setPreviewCert] = useState(null);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(null);
+
+  const handleOpenPreview = async (cert) => {
+    setPreviewCert(cert);
+    setPreviewHtml('');
+    if (cert.previewImagePath) {
+      setPreviewLoading(false);
+      return;
+    }
+    try {
+      setPreviewLoading(true);
+      const res = await api.get(`/admin/certificates/${cert._id || cert.certificateId}/preview-html`);
+      setPreviewHtml(res.data);
+    } catch (err) {
+      console.error('Failed to load preview html:', err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchCollegesAndCompanies();
@@ -450,7 +470,7 @@ const AdminCertificates = () => {
                           {(cert.status === 'GENERATED' || cert.status === 'ISSUED' || cert.filePath || (cert.certificateId && cert.certificateId !== 'Pending')) && (
                             <>
                               <button
-                                onClick={() => setPreviewCert(cert)}
+                                onClick={() => handleOpenPreview(cert)}
                                 className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-colors cursor-pointer"
                                 title="Preview Rendered Certificate"
                               >
@@ -513,24 +533,36 @@ const AdminCertificates = () => {
       {/* Visual Preview Modal */}
       <Modal
         isOpen={!!previewCert}
-        onClose={() => setPreviewCert(null)}
+        onClose={() => {
+          setPreviewCert(null);
+          setPreviewHtml('');
+        }}
         title={`Certificate Preview — ${previewCert?.studentId?.name || ''} (${previewCert?.certificateId || previewCert?.certificateNumber || 'SMG'})`}
       >
         {previewCert && (
           <div className="space-y-4">
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-              {previewCert.previewImagePath ? (
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-slate-50 flex items-center justify-center min-h-[480px]">
+              {previewLoading ? (
+                <div className="text-center py-20">
+                  <div className="inline-block w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs text-slate-500 font-bold mt-3">Rendering Certificate Preview...</p>
+                </div>
+              ) : previewCert.previewImagePath ? (
                 <img
                   src={getAssetUrl(previewCert.previewImagePath)}
                   alt="Rendered Certificate Preview"
                   className="w-full h-auto block"
                 />
-              ) : (
+              ) : previewHtml ? (
                 <iframe
-                  src={getAssetUrl(`api/admin/certificates/${previewCert._id || previewCert.certificateId}/preview-html`)}
-                  className="w-full h-[480px] rounded-lg border-0 bg-white"
+                  srcDoc={previewHtml}
+                  className="w-full h-[520px] rounded-lg border-0 bg-white"
                   title="Certificate Visual Preview"
                 />
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-xs text-slate-400 font-bold">Could not load preview. Please download the PDF directly.</p>
+                </div>
               )}
             </div>
             <div className="flex items-center justify-between pt-2">
