@@ -447,28 +447,28 @@ const AdminCertificates = () => {
                               <span>+ Generate</span>
                             </Link>
                           )}
-                          {cert.previewImagePath && (
-                            <button
-                              onClick={() => setPreviewCert(cert)}
-                              className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-colors cursor-pointer"
-                              title="Preview Rendered Certificate"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-slate-600" />
-                              <span>Preview</span>
-                            </button>
-                          )}
-                          {cert.previewImagePath && (
-                            <button
-                              onClick={() => {
-                                const filename = `${(cert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${cert.certificateId || 'SMG'}.pdf`;
-                                downloadPdfFromImage(cert.previewImagePath, filename);
-                              }}
-                              className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors cursor-pointer"
-                              title="Download Print-Ready PDF"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              <span>PDF</span>
-                            </button>
+                          {(cert.status === 'GENERATED' || cert.status === 'ISSUED' || cert.filePath || (cert.certificateId && cert.certificateId !== 'Pending')) && (
+                            <>
+                              <button
+                                onClick={() => setPreviewCert(cert)}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                                title="Preview Rendered Certificate"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-600" />
+                                <span>Preview</span>
+                              </button>
+                              <a
+                                href={getAssetUrl(cert.filePath || `certificates/${(student.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${cert.certificateId}.pdf`)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={`${(student.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${cert.certificateId || 'SMG'}.pdf`}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors cursor-pointer"
+                                title="Download Print-Ready PDF"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>PDF</span>
+                              </a>
+                            </>
                           )}
                         </div>
                       </td>
@@ -514,31 +514,39 @@ const AdminCertificates = () => {
       <Modal
         isOpen={!!previewCert}
         onClose={() => setPreviewCert(null)}
-        title={`Certificate Preview — ${previewCert?.studentId?.name || ''} (${previewCert?.certificateId || previewCert?.certificateNumber})`}
+        title={`Certificate Preview — ${previewCert?.studentId?.name || ''} (${previewCert?.certificateId || previewCert?.certificateNumber || 'SMG'})`}
       >
         {previewCert && (
           <div className="space-y-4">
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-              <img
-                src={getAssetUrl(previewCert.previewImagePath)}
-                alt="Rendered Certificate Preview"
-                className="w-full h-auto block"
-              />
+              {previewCert.previewImagePath ? (
+                <img
+                  src={getAssetUrl(previewCert.previewImagePath)}
+                  alt="Rendered Certificate Preview"
+                  className="w-full h-auto block"
+                />
+              ) : (
+                <iframe
+                  src={`${getAssetUrl(previewCert.filePath || `certificates/${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${previewCert.certificateId}.pdf`)}#toolbar=0`}
+                  className="w-full h-[450px] rounded-lg border-0"
+                  title="Certificate PDF Preview"
+                />
+              )}
             </div>
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs font-mono text-slate-500">
                 ID: {previewCert.certificateId || previewCert.certificateNumber}
               </span>
-              <button
-                onClick={() => {
-                  const filename = `${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${previewCert.certificateId || 'SMG'}.pdf`;
-                  downloadPdfFromImage(previewCert.previewImagePath || getAssetUrl(previewCert.filePath), filename);
-                }}
+              <a
+                href={getAssetUrl(previewCert.filePath || `certificates/${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${previewCert.certificateId}.pdf`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={`${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${previewCert.certificateId || 'SMG'}.pdf`}
                 className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Print-Ready PDF</span>
-              </button>
+              </a>
             </div>
           </div>
         )}
