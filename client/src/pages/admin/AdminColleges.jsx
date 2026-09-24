@@ -199,6 +199,7 @@ const AdminColleges = () => {
       }
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to delete students', type: 'error' });
+    } finally {
       setDeleteStudentsModal(prev => ({ ...prev, loading: false }));
     }
   };
@@ -215,6 +216,7 @@ const AdminColleges = () => {
       }
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to delete college', type: 'error' });
+    } finally {
       setDeleteCollegeModal(prev => ({ ...prev, loading: false }));
     }
   };

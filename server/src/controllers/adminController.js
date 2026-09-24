@@ -949,6 +949,19 @@ const uploadSmLogo = async (req, res, next) => {
   }
 };
 
+const safeUnlinkFile = (filePath) => {
+  if (!filePath || typeof filePath !== 'string') return;
+  if (filePath.startsWith('data:') || filePath.length > 400) return;
+  try {
+    const fullPath = path.isAbsolute(filePath)
+      ? filePath
+      : path.join(__dirname, '../../', filePath);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+    }
+  } catch (e) {}
+};
+
 // DELETE /api/admin/colleges/:id/students
 const deleteCollegeStudents = async (req, res, next) => {
   try {
@@ -966,25 +979,11 @@ const deleteCollegeStudents = async (req, res, next) => {
     const studentIds = students.map(s => s._id);
     const userIds = students.map(s => s.userId).filter(Boolean);
 
-    // 1. Find certificates and delete files from disk
+    // 1. Find certificates and safely delete files from disk
     const certs = await Certificate.find({ studentId: { $in: studentIds } });
     for (const cert of certs) {
-      if (cert.filePath) {
-        const fullPdfPath = path.isAbsolute(cert.filePath)
-          ? cert.filePath
-          : path.join(__dirname, '../../', cert.filePath);
-        if (fs.existsSync(fullPdfPath)) {
-          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
-        }
-      }
-      if (cert.previewImagePath) {
-        const fullPngPath = path.isAbsolute(cert.previewImagePath)
-          ? cert.previewImagePath
-          : path.join(__dirname, '../../', cert.previewImagePath);
-        if (fs.existsSync(fullPngPath)) {
-          try { fs.unlinkSync(fullPngPath); } catch (e) {}
-        }
-      }
+      safeUnlinkFile(cert.filePath);
+      safeUnlinkFile(cert.previewImagePath);
     }
 
     // 2. Delete certificates from DB
@@ -1024,22 +1023,8 @@ const deleteStudent = async (req, res, next) => {
     // 1. Delete associated certificates and files
     const certs = await Certificate.find({ studentId: student._id });
     for (const cert of certs) {
-      if (cert.filePath) {
-        const fullPdfPath = path.isAbsolute(cert.filePath)
-          ? cert.filePath
-          : path.join(__dirname, '../../', cert.filePath);
-        if (fs.existsSync(fullPdfPath)) {
-          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
-        }
-      }
-      if (cert.previewImagePath) {
-        const fullPngPath = path.isAbsolute(cert.previewImagePath)
-          ? cert.previewImagePath
-          : path.join(__dirname, '../../', cert.previewImagePath);
-        if (fs.existsSync(fullPngPath)) {
-          try { fs.unlinkSync(fullPngPath); } catch (e) {}
-        }
-      }
+      safeUnlinkFile(cert.filePath);
+      safeUnlinkFile(cert.previewImagePath);
     }
     await Certificate.deleteMany({ studentId: student._id });
 
@@ -1084,22 +1069,8 @@ const bulkDeleteStudents = async (req, res, next) => {
     // Delete cert files and documents
     const certs = await Certificate.find({ studentId: { $in: validIds } });
     for (const cert of certs) {
-      if (cert.filePath) {
-        const fullPdfPath = path.isAbsolute(cert.filePath)
-          ? cert.filePath
-          : path.join(__dirname, '../../', cert.filePath);
-        if (fs.existsSync(fullPdfPath)) {
-          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
-        }
-      }
-      if (cert.previewImagePath) {
-        const fullPngPath = path.isAbsolute(cert.previewImagePath)
-          ? cert.previewImagePath
-          : path.join(__dirname, '../../', cert.previewImagePath);
-        if (fs.existsSync(fullPngPath)) {
-          try { fs.unlinkSync(fullPngPath); } catch (e) {}
-        }
-      }
+      safeUnlinkFile(cert.filePath);
+      safeUnlinkFile(cert.previewImagePath);
     }
     await Certificate.deleteMany({ studentId: { $in: validIds } });
 
@@ -1143,22 +1114,8 @@ const deleteCollege = async (req, res, next) => {
 
     const certs = await Certificate.find({ studentId: { $in: studentIds } });
     for (const cert of certs) {
-      if (cert.filePath) {
-        const fullPdfPath = path.isAbsolute(cert.filePath)
-          ? cert.filePath
-          : path.join(__dirname, '../../', cert.filePath);
-        if (fs.existsSync(fullPdfPath)) {
-          try { fs.unlinkSync(fullPdfPath); } catch (e) {}
-        }
-      }
-      if (cert.previewImagePath) {
-        const fullPngPath = path.isAbsolute(cert.previewImagePath)
-          ? cert.previewImagePath
-          : path.join(__dirname, '../../', cert.previewImagePath);
-        if (fs.existsSync(fullPngPath)) {
-          try { fs.unlinkSync(fullPngPath); } catch (e) {}
-        }
-      }
+      safeUnlinkFile(cert.filePath);
+      safeUnlinkFile(cert.previewImagePath);
     }
     await Certificate.deleteMany({ studentId: { $in: studentIds } });
     if (userIds.length > 0) {
