@@ -407,8 +407,87 @@ const exportStudentCredentials = async (req, res, next) => {
 // Companies & Courses
 const getCompanies = async (req, res, next) => {
   try {
-    const companies = await Company.find().sort({ name: 1 }).lean();
+    const rawCompanies = await Company.find().sort({ name: 1 }).lean();
+    const companies = rawCompanies.map((comp) => {
+      const hasLogo = Boolean(comp.logoPath);
+      const hasBg = Boolean(comp.bgImagePath);
+      return {
+        _id: comp._id,
+        name: comp.name,
+        templateStyle: comp.templateStyle || 'default',
+        hasLogo,
+        hasBgImage: hasBg,
+        logoPath: hasLogo
+          ? (comp.logoPath.startsWith('data:') ? `api/admin/companies/${comp._id}/logo-image?v=${comp.updatedAt ? new Date(comp.updatedAt).getTime() : Date.now()}` : comp.logoPath)
+          : '',
+        bgImagePath: hasBg
+          ? (comp.bgImagePath.startsWith('data:') ? `api/admin/companies/${comp._id}/bg-image?v=${comp.updatedAt ? new Date(comp.updatedAt).getTime() : Date.now()}` : comp.bgImagePath)
+          : '',
+        createdAt: comp.createdAt,
+        updatedAt: comp.updatedAt
+      };
+    });
     res.json({ success: true, companies });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCompanyLogoImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findById(id).select('logoPath name').lean();
+    if (!company || !company.logoPath) {
+      return res.status(404).send('Logo not found');
+    }
+
+    if (company.logoPath.startsWith('data:')) {
+      const matches = company.logoPath.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const mimeType = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+        return res.send(buffer);
+      }
+    } else if (company.logoPath.startsWith('uploads/') || company.logoPath.startsWith('assets/')) {
+      const fullPath = path.join(__dirname, '../../', company.logoPath);
+      if (fs.existsSync(fullPath)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+        return res.sendFile(fullPath);
+      }
+    }
+    return res.status(404).send('Logo file not found');
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCompanyBgImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findById(id).select('bgImagePath name').lean();
+    if (!company || !company.bgImagePath) {
+      return res.status(404).send('Background image not found');
+    }
+
+    if (company.bgImagePath.startsWith('data:')) {
+      const matches = company.bgImagePath.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const mimeType = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+        return res.send(buffer);
+      }
+    } else if (company.bgImagePath.startsWith('uploads/') || company.bgImagePath.startsWith('assets/')) {
+      const fullPath = path.join(__dirname, '../../', company.bgImagePath);
+      if (fs.existsSync(fullPath)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+        return res.sendFile(fullPath);
+      }
+    }
+    return res.status(404).send('Background image file not found');
   } catch (error) {
     next(error);
   }
@@ -1154,6 +1233,8 @@ module.exports = {
   downloadSampleExcel,
   exportStudentCredentials,
   getCompanies,
+  getCompanyLogoImage,
+  getCompanyBgImage,
   createCompany,
   updateCompany,
   deleteCompany,

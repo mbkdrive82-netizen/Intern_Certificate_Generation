@@ -19,6 +19,8 @@ const {
   downloadSampleExcel,
   exportStudentCredentials,
   getCompanies,
+  getCompanyLogoImage,
+  getCompanyBgImage,
   createCompany,
   updateCompany,
   deleteCompany,
@@ -37,7 +39,11 @@ const {
   getCertificates
 } = require('../controllers/adminController');
 
-// All endpoints require SM_GROUPS_ADMIN role
+// Public Image Streaming Endpoints (For fast browser <img> tag loading without auth headers)
+router.get('/companies/:id/logo-image', getCompanyLogoImage);
+router.get('/companies/:id/bg-image', getCompanyBgImage);
+
+// All other endpoints require SM_GROUPS_ADMIN role
 router.use(requireAuth, requireRole('SM_GROUPS_ADMIN'));
 
 router.get('/dashboard', getDashboard);
