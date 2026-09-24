@@ -97,17 +97,20 @@ const generateNextCertificateId = async () => {
 /**
  * Programmatically generate high-quality HTML/CSS/SVG Certificate PDF & PNG via Puppeteer
  */
-const generateStudentCertificate = async (studentId, options = {}, existingBrowser = null, existingPage = null) => {
+const generateStudentCertificate = async (studentId, options = {}, existingBrowser = null, existingPage = null, cachedContext = null) => {
   const { templateId, regenerate = false } = options;
 
-  // 1. Fetch Student
-  const student = await Student.findById(studentId).populate('collegeId');
+  // 1. Fetch Student (use preloaded object if provided)
+  const student = options.student || await Student.findById(studentId).populate('collegeId');
   if (!student) {
     throw new Error(`Student with ID ${studentId} not found.`);
   }
 
   // 2. Check existing certificate
-  let existingCert = await Certificate.findOne({ studentId: student._id });
+  let existingCert = (cachedContext && cachedContext.certsMap)
+    ? cachedContext.certsMap.get(String(student._id))
+    : await Certificate.findOne({ studentId: student._id });
+
   if (existingCert && existingCert.status === 'GENERATED' && !regenerate) {
     return {
       certificate: existingCert,
@@ -116,9 +119,12 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
     };
   }
 
-  // Helper for flexible company matching (handles "SRI TECH" <=> "SRITECH", case/spaces)
+  // Helper for flexible company matching
   const findMatchingCompany = async (compName) => {
     if (!compName) return null;
+    if (cachedContext && cachedContext.findMatchingCompany) {
+      return cachedContext.findMatchingCompany(compName);
+    }
     const trimmed = String(compName).trim();
     let comp = await Company.findOne({ name: new RegExp(`^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
     if (comp) return comp;
@@ -134,47 +140,48 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
     return null;
   };
 
-  // 3. Fetch related records
-  let template = templateId ? await CertificateTemplate.findById(templateId) : await CertificateTemplate.findOne({ isActive: true });
+  // 3. Fetch related records (from cache if available)
+  let template = templateId
+    ? ((cachedContext && cachedContext.templatesMap) ? cachedContext.templatesMap.get(String(templateId)) : await CertificateTemplate.findById(templateId))
+    : (cachedContext ? cachedContext.activeTemplate : await CertificateTemplate.findOne({ isActive: true }));
+
   const company = await findMatchingCompany(student.company);
-  const course = await Course.findOne({ name: new RegExp(`^${student.course.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+  const course = (cachedContext && cachedContext.findCourse)
+    ? cachedContext.findCourse(student.course)
+    : await Course.findOne({ name: new RegExp(`^${(student.course || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
 
   // 4. Determine Certificate ID
-  let certificateId = existingCert && existingCert.certificateId ? existingCert.certificateId : await generateNextCertificateId();
+  let certificateId = options.assignedCertificateId || (existingCert && existingCert.certificateId ? existingCert.certificateId : await generateNextCertificateId());
 
   // 5. Build certificate data object
   const certData = buildCertificateData(student, student.collegeId, company, course, certificateId);
 
-  // Fetch TNSkill Master Logo: common for all certificates top center
+  // Fetch TNSkill Master Logo & SM Logo
   const defaultFixedTnSkillLogo = path.join(__dirname, '../certificates/assets/tnskill_logo.png');
   certData.tnSkillLogoPath = defaultFixedTnSkillLogo;
-
-  // Fetch SM GROUPS logo: default to permanent fixed logo, or setting if present
   const defaultFixedSmLogo = path.join(__dirname, '../certificates/assets/sm_groups_logo.png');
   certData.smLogoPath = defaultFixedSmLogo;
 
-  const Setting = require('../models/Setting');
-  const tnSkillSetting = await Setting.findOne({ key: 'tnskill_logo' });
-  if (tnSkillSetting && tnSkillSetting.value && fs.existsSync(tnSkillSetting.value)) {
-    certData.tnSkillLogoPath = tnSkillSetting.value;
+  if (cachedContext) {
+    if (cachedContext.tnSkillLogoPath) certData.tnSkillLogoPath = cachedContext.tnSkillLogoPath;
+    if (cachedContext.smLogoPath) certData.smLogoPath = cachedContext.smLogoPath;
+  } else {
+    const Setting = require('../models/Setting');
+    const tnSkillSetting = await Setting.findOne({ key: 'tnskill_logo' });
+    if (tnSkillSetting && tnSkillSetting.value && fs.existsSync(tnSkillSetting.value)) {
+      certData.tnSkillLogoPath = tnSkillSetting.value;
+    }
+    const smLogoSetting = await Setting.findOne({ key: 'sm_groups_logo' });
+    if (smLogoSetting && smLogoSetting.value && fs.existsSync(smLogoSetting.value)) {
+      certData.smLogoPath = smLogoSetting.value;
+    } else if (template && template.smLogoPath && fs.existsSync(template.smLogoPath)) {
+      certData.smLogoPath = template.smLogoPath;
+    }
   }
 
-  const smLogoSetting = await Setting.findOne({ key: 'sm_groups_logo' });
-  if (smLogoSetting && smLogoSetting.value && fs.existsSync(smLogoSetting.value)) {
-    certData.smLogoPath = smLogoSetting.value;
-  } else if (template && template.smLogoPath && fs.existsSync(template.smLogoPath)) {
-    certData.smLogoPath = template.smLogoPath;
-  }
-
-  // Company logo (sub-company logo on top left)
-  if (company && company.logoPath) {
-    certData.subLogoPath = company.logoPath;
-  }
-
-  // Company custom background image (if uploaded for this sub-company)
-  if (company && company.bgImagePath) {
-    certData.bgImagePath = company.bgImagePath;
-  }
+  // Company logo & background
+  if (company && company.logoPath) certData.subLogoPath = company.logoPath;
+  if (company && company.bgImagePath) certData.bgImagePath = company.bgImagePath;
 
   // 6. Render HTML
   const htmlContent = renderCertificateHtml(certData);
@@ -310,7 +317,7 @@ const getBulkProgress = () => {
 };
 
 /**
- * Bulk generate individual certificates for filtered students (Fast Single-Browser Engine)
+ * Bulk generate individual certificates for filtered students (Ultra-Fast 3-Worker Parallel Engine)
  */
 const generateBulkCertificates = async (filter = {}, options = {}) => {
   const query = {};
@@ -323,7 +330,7 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
   }
   if (filter.course) query.course = new RegExp(`^${filter.course.trim()}$`, 'i');
 
-  const students = await Student.find(query);
+  const students = await Student.find(query).populate('collegeId');
 
   let successCount = 0;
   let skippedCount = 0;
@@ -355,7 +362,7 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
     inProgress: true,
     current: 0,
     total: students.length,
-    currentStudent: 'Initializing generation engine...',
+    currentStudent: 'Initializing high-speed parallel generation engine...',
     company: filter.company || 'All',
     percent: 0,
     successCount: 0,
@@ -363,7 +370,66 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
     failedCount: 0
   };
 
-  // Launch browser ONCE for the entire batch with ultra-lightweight flags for Render Free Tier (512MB RAM)
+  // Pre-load all database context in parallel (0 DB calls inside loop)
+  const currentYear = new Date().getFullYear();
+  const prefix = `SMG-${currentYear}-`;
+
+  const [allCompanies, activeTemplate, allCourses, allSettings, existingCerts, lastCert] = await Promise.all([
+    Company.find().lean(),
+    options.templateId ? CertificateTemplate.findById(options.templateId).lean() : CertificateTemplate.findOne({ isActive: true }).lean(),
+    Course.find().lean(),
+    Setting.find({ key: { $in: ['tnskill_logo', 'sm_groups_logo'] } }).lean(),
+    Certificate.find({ studentId: { $in: students.map(s => s._id) } }).lean(),
+    Certificate.findOne({ certificateId: new RegExp(`^${prefix}`) }).sort({ certificateId: -1 }).lean()
+  ]);
+
+  const certsMap = new Map();
+  existingCerts.forEach(c => certsMap.set(String(c.studentId), c));
+
+  const cleanMap = new Map();
+  allCompanies.forEach(c => {
+    const clean = (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    cleanMap.set(clean, c);
+  });
+  const findMatchingCompany = (compName) => {
+    if (!compName) return null;
+    const target = String(compName).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (cleanMap.has(target)) return cleanMap.get(target);
+    for (const [k, v] of cleanMap.entries()) {
+      if (k.includes(target) || target.includes(k)) return v;
+    }
+    return allCompanies[0] || null;
+  };
+
+  const courseMap = new Map();
+  allCourses.forEach(c => courseMap.set((c.name || '').toLowerCase().trim(), c));
+  const findCourse = (courseName) => {
+    if (!courseName) return null;
+    return courseMap.get(String(courseName).toLowerCase().trim()) || null;
+  };
+
+  const tnSkillSetting = allSettings.find(s => s.key === 'tnskill_logo');
+  const smLogoSetting = allSettings.find(s => s.key === 'sm_groups_logo');
+
+  let nextSeq = 1;
+  if (lastCert && lastCert.certificateId) {
+    const parts = lastCert.certificateId.split('-');
+    if (parts.length === 3) {
+      const parsed = parseInt(parts[2], 10);
+      if (!isNaN(parsed)) nextSeq = parsed + 1;
+    }
+  }
+
+  const cachedContext = {
+    certsMap,
+    activeTemplate,
+    findMatchingCompany,
+    findCourse,
+    tnSkillLogoPath: tnSkillSetting?.value,
+    smLogoPath: smLogoSetting?.value
+  };
+
+  // Launch browser ONCE for the entire batch with ultra-lightweight flags
   const executablePath = getBrowserExecutablePath();
   const batchBrowser = await puppeteer.launch({
     executablePath,
@@ -381,61 +447,69 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
       '--disable-default-apps',
       '--disable-extensions',
       '--disable-sync',
-      '--js-flags="--max-old-space-size=128"'
+      '--js-flags="--max-old-space-size=256"'
     ]
   });
 
-  let batchPage = null;
+  const CONCURRENCY = 3;
+  let pages = [];
+
   try {
-    batchPage = await batchBrowser.newPage();
-    await batchPage.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+    pages = await Promise.all(
+      Array.from({ length: CONCURRENCY }, () =>
+        batchBrowser.newPage().then(async p => {
+          await p.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+          return p;
+        })
+      )
+    );
 
-    for (let i = 0; i < students.length; i++) {
-      const student = students[i];
-      bulkProgress.current = i + 1;
-      bulkProgress.currentStudent = student.name;
-      bulkProgress.percent = Math.round(((i + 1) / students.length) * 100);
+    let currentIndex = 0;
+    let completedCount = 0;
 
-      // Periodically recycle page every 25 students to release memory
-      if (i > 0 && i % 25 === 0) {
-        if (batchPage) {
-          try { await batchPage.close(); } catch (e) {}
+    const worker = async (workerPage, workerId) => {
+      while (currentIndex < students.length) {
+        const studentIndex = currentIndex++;
+        const student = students[studentIndex];
+        const assignedCertId = `${prefix}${String(nextSeq++).padStart(6, '0')}`;
+
+        try {
+          const res = await generateStudentCertificate(
+            student._id,
+            { ...options, skipPreviewScreenshot: true, student, assignedCertificateId: assignedCertId },
+            batchBrowser,
+            workerPage,
+            cachedContext
+          );
+          if (res.alreadyGenerated) {
+            skippedCount++;
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          failedCount++;
+          errors.push({
+            studentId: student.studentId,
+            studentName: student.name,
+            error: err.message
+          });
         }
-        batchPage = await batchBrowser.newPage();
-        await batchPage.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+
+        completedCount++;
+        bulkProgress.current = completedCount;
+        bulkProgress.currentStudent = student.name;
+        bulkProgress.percent = Math.round((completedCount / students.length) * 100);
+        bulkProgress.successCount = successCount;
+        bulkProgress.skippedCount = skippedCount;
+        bulkProgress.failedCount = failedCount;
       }
+    };
 
-      try {
-        const res = await generateStudentCertificate(
-          student._id,
-          { ...options, skipPreviewScreenshot: true },
-          batchBrowser,
-          batchPage
-        );
-        if (res.alreadyGenerated) {
-          skippedCount++;
-        } else {
-          successCount++;
-        }
-      } catch (err) {
-        failedCount++;
-        errors.push({
-          studentId: student.studentId,
-          studentName: student.name,
-          error: err.message
-        });
-      }
-
-      bulkProgress.successCount = successCount;
-      bulkProgress.skippedCount = skippedCount;
-      bulkProgress.failedCount = failedCount;
-
-      // Fast yield
-      await new Promise(r => setTimeout(r, 20));
-    }
+    // Run 3 workers in parallel
+    await Promise.all(pages.map((p, idx) => worker(p, idx)));
   } finally {
-    if (batchPage) {
-      try { await batchPage.close(); } catch (e) {}
+    for (const p of pages) {
+      try { await p.close(); } catch (e) {}
     }
     bulkProgress.inProgress = false;
     bulkProgress.lastResult = {
@@ -447,7 +521,7 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
     };
     bulkProgress.finishedAt = new Date();
     if (batchBrowser) {
-      await batchBrowser.close();
+      try { await batchBrowser.close(); } catch (e) {}
     }
   }
 

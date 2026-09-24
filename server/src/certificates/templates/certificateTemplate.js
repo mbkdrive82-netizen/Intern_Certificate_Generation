@@ -1,10 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-// Helper to convert local file or Data URI to base64 Data URI for reliable Puppeteer rendering
+const fileCache = new Map();
+
+// Helper to convert local file or Data URI to base64 Data URI for reliable Puppeteer rendering with memory cache
 const fileToDataUri = (filePath) => {
   if (!filePath) return '';
   if (typeof filePath === 'string' && filePath.startsWith('data:')) return filePath;
+  if (fileCache.has(filePath)) return fileCache.get(filePath);
 
   let resolvedPath = filePath;
   if (!path.isAbsolute(resolvedPath)) {
@@ -28,7 +31,28 @@ const fileToDataUri = (filePath) => {
   const ext = path.extname(resolvedPath).toLowerCase().replace('.', '');
   const mimeType = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : 'application/octet-stream';
   const buffer = fs.readFileSync(resolvedPath);
-  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+  const uri = `data:${mimeType};base64,${buffer.toString('base64')}`;
+  fileCache.set(filePath, uri);
+  return uri;
+};
+
+let cachedHtmlTemplate = null;
+let cachedCssStyles = null;
+
+const getTemplateHtml = () => {
+  if (!cachedHtmlTemplate) {
+    const htmlPath = path.join(__dirname, 'certificateTemplate.html');
+    cachedHtmlTemplate = fs.readFileSync(htmlPath, 'utf8');
+  }
+  return cachedHtmlTemplate;
+};
+
+const getTemplateCss = () => {
+  if (!cachedCssStyles) {
+    const cssPath = path.join(__dirname, 'certificateTemplate.css');
+    cachedCssStyles = fs.readFileSync(cssPath, 'utf8');
+  }
+  return cachedCssStyles;
 };
 
 /**
@@ -87,11 +111,8 @@ const buildCertificateData = (student, college, company, course, certificateId) 
  * Render HTML certificate string with embedded CSS and dynamic data
  */
 const renderCertificateHtml = (data) => {
-  const htmlPath = path.join(__dirname, 'certificateTemplate.html');
-  const cssPath = path.join(__dirname, 'certificateTemplate.css');
-
-  let html = fs.readFileSync(htmlPath, 'utf8');
-  const css = fs.readFileSync(cssPath, 'utf8');
+  let html = getTemplateHtml();
+  const css = getTemplateCss();
 
   // Fixed TNSkill Logo (Common for all certificates top center)
   const fixedTnSkillLogoPath = path.join(__dirname, '../assets/tnskill_logo.png');
