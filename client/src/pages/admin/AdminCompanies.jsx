@@ -15,6 +15,7 @@ const AdminCompanies = () => {
   const [smLogoPath, setSmLogoPath] = useState(cachedSmLogo || '');
   const [smLogoFile, setSmLogoFile] = useState(null);
   const [savingSmLogo, setSavingSmLogo] = useState(false);
+  const [loading, setLoading] = useState(!cachedCompanies || cachedCompanies.length === 0);
 
 
   // Edit Company Logo Modal
@@ -47,15 +48,18 @@ const AdminCompanies = () => {
     fetchSmLogo();
   }, []);
 
-  const fetchCompanies = async () => {
+  const fetchCompanies = async (silent = false) => {
     try {
+      if (!silent) setLoading(true);
       const res = await api.get('/admin/companies');
       if (res.data.success) {
-        setCompanies(res.data.companies);
-        setCachedData('admin_companies_list', res.data.companies);
+        setCompanies(res.data.companies || []);
+        setCachedData('admin_companies_list', res.data.companies || []);
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -254,7 +258,7 @@ const AdminCompanies = () => {
   };
 
   return (
-    <AppLayout title="Organization & Sub-Company Management">
+    <AppLayout title="Organization & Sub-Company Management" onRefresh={() => fetchCompanies(false)}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="space-y-6">
@@ -315,14 +319,19 @@ const AdminCompanies = () => {
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl shadow-xs text-xs self-start"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl shadow-xs text-xs self-start cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add Sub-Company</span>
             </button>
           </div>
 
-          {companies.length === 0 ? (
+          {loading ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
+              <div className="inline-block w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-2" />
+              <p className="text-xs text-slate-500 font-bold">Loading sub-companies...</p>
+            </div>
+          ) : companies.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400">
               <Briefcase className="w-8 h-8 mx-auto mb-2 text-slate-300" />
               <p className="font-semibold text-sm text-slate-600">No sub-companies registered yet</p>
