@@ -1040,7 +1040,57 @@ const getCertificateHtmlPreview = async (req, res, next) => {
     if (company && company.logoPath) certData.subLogoPath = company.logoPath;
     if (company && company.bgImagePath) certData.bgImagePath = company.bgImagePath;
 
-    const html = renderCertificateHtml(certData);
+    let html = renderCertificateHtml(certData);
+
+    // Inject responsive auto-fit scaling for seamless iframe/browser viewing on all screen sizes
+    const responsiveScript = `
+<style id="preview-autofit-style">
+  @media screen {
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      overflow: hidden !important;
+      background: #f1f5f9 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .cert-frame {
+      transform-origin: center center !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12) !important;
+      flex-shrink: 0 !important;
+      transition: transform 0.1s ease-out;
+    }
+  }
+</style>
+<script>
+  function autoFitPreview() {
+    var cert = document.querySelector('.cert-frame');
+    if (!cert) return;
+    var pad = 16;
+    var availW = window.innerWidth - pad;
+    var availH = window.innerHeight - pad;
+    var certW = 1123;
+    var certH = 794;
+    var scale = Math.min(availW / certW, availH / certH);
+    cert.style.transform = 'scale(' + scale + ')';
+  }
+  window.addEventListener('resize', autoFitPreview);
+  window.addEventListener('DOMContentLoaded', autoFitPreview);
+  window.addEventListener('load', autoFitPreview);
+  autoFitPreview();
+  setTimeout(autoFitPreview, 50);
+  setTimeout(autoFitPreview, 250);
+</script>
+`;
+    if (html.includes('</head>')) {
+      html = html.replace('</head>', `${responsiveScript}</head>`);
+    } else {
+      html += responsiveScript;
+    }
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (error) {

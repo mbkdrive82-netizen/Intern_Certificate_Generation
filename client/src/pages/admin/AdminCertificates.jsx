@@ -59,7 +59,57 @@ const AdminCertificates = () => {
     try {
       setPreviewLoading(true);
       const res = await api.get(`/admin/certificates/${cert._id || cert.certificateId}/preview-html`);
-      setPreviewHtml(res.data);
+      let html = typeof res.data === 'string' ? res.data : '';
+      const responsiveScript = `
+<style id="client-preview-autofit-style">
+  @media screen {
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      overflow: hidden !important;
+      background: #f1f5f9 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .cert-frame {
+      transform-origin: center center !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12) !important;
+      flex-shrink: 0 !important;
+      transition: transform 0.1s ease-out;
+    }
+  }
+</style>
+<script>
+  function autoFitPreview() {
+    var cert = document.querySelector('.cert-frame');
+    if (!cert) return;
+    var pad = 16;
+    var availW = window.innerWidth - pad;
+    var availH = window.innerHeight - pad;
+    var certW = 1123;
+    var certH = 794;
+    var scale = Math.min(availW / certW, availH / certH);
+    cert.style.transform = 'scale(' + scale + ')';
+  }
+  window.addEventListener('resize', autoFitPreview);
+  window.addEventListener('DOMContentLoaded', autoFitPreview);
+  window.addEventListener('load', autoFitPreview);
+  autoFitPreview();
+  setTimeout(autoFitPreview, 50);
+  setTimeout(autoFitPreview, 250);
+</script>
+`;
+      if (html && !html.includes('preview-autofit-style') && !html.includes('client-preview-autofit-style')) {
+        if (html.includes('</head>')) {
+          html = html.replace('</head>', `${responsiveScript}</head>`);
+        } else {
+          html += responsiveScript;
+        }
+      }
+      setPreviewHtml(html);
     } catch (err) {
       console.error('Failed to load preview html:', err);
     } finally {
@@ -533,6 +583,7 @@ const AdminCertificates = () => {
       {/* Visual Preview Modal */}
       <Modal
         isOpen={!!previewCert}
+        maxWidth="max-w-5xl"
         onClose={() => {
           setPreviewCert(null);
           setPreviewHtml('');
@@ -541,7 +592,7 @@ const AdminCertificates = () => {
       >
         {previewCert && (
           <div className="space-y-4">
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-slate-50 flex items-center justify-center min-h-[480px]">
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-100 flex items-center justify-center h-[55vh] min-h-[300px] max-h-[620px] w-full">
               {previewLoading ? (
                 <div className="text-center py-20">
                   <div className="inline-block w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -551,12 +602,12 @@ const AdminCertificates = () => {
                 <img
                   src={getAssetUrl(previewCert.previewImagePath)}
                   alt="Rendered Certificate Preview"
-                  className="w-full h-auto block"
+                  className="w-full h-auto max-h-full object-contain block"
                 />
               ) : previewHtml ? (
                 <iframe
                   srcDoc={previewHtml}
-                  className="w-full h-[520px] rounded-lg border-0 bg-white"
+                  className="w-full h-full rounded-lg border-0 bg-transparent block"
                   title="Certificate Visual Preview"
                 />
               ) : (
@@ -565,20 +616,32 @@ const AdminCertificates = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               <span className="text-xs font-mono text-slate-500">
                 ID: {previewCert.certificateId || previewCert.certificateNumber}
               </span>
-              <a
-                href={getAssetUrl(previewCert.filePath || `certificates/${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${previewCert.certificateId}.pdf`)}
-                target="_blank"
-                rel="noopener noreferrer"
-                download={`${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${previewCert.certificateId || 'SMG'}.pdf`}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Print-Ready PDF</span>
-              </a>
+              <div className="flex items-center space-x-2">
+                <a
+                  href={`${api.defaults.baseURL || 'https://intern-certificate-generation.onrender.com/api'}/admin/certificates/${previewCert._id || previewCert.certificateId}/preview-html`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                  title="Open Preview in New Tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open Full View</span>
+                </a>
+                <a
+                  href={getAssetUrl(previewCert.filePath || `certificates/${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${previewCert.certificateId}.pdf`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={`${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${previewCert.certificateId || 'SMG'}.pdf`}
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Print-Ready PDF</span>
+                </a>
+              </div>
             </div>
           </div>
         )}
