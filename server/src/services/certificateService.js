@@ -663,9 +663,17 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
 
-  const archive = archiver('zip', {
-    zlib: { level: 6 }
-  });
+  const archiverModule = require('archiver');
+  let archive;
+  if (archiverModule.ZipArchive) {
+    archive = new archiverModule.ZipArchive({ zlib: { level: 6 } });
+  } else if (typeof archiverModule === 'function') {
+    archive = archiverModule('zip', { zlib: { level: 6 } });
+  } else if (archiverModule.default) {
+    archive = typeof archiverModule.default === 'function'
+      ? archiverModule.default('zip', { zlib: { level: 6 } })
+      : new archiverModule.default.ZipArchive({ zlib: { level: 6 } });
+  }
 
   archive.on('error', (err) => {
     console.error('Archiver error:', err);
