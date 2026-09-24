@@ -1103,9 +1103,6 @@ const deleteCollege = async (req, res, next) => {
   try {
     const { id } = req.params;
     const college = await College.findById(id);
-    if (!college) {
-      return res.status(404).json({ success: false, message: 'College not found' });
-    }
 
     // 1. Delete all students of this college
     const students = await Student.find({ collegeId: id });
@@ -1123,17 +1120,17 @@ const deleteCollege = async (req, res, next) => {
     }
     await Student.deleteMany({ collegeId: id });
 
-    // 2. Delete College Admin user
-    if (college.adminUserId) {
-      await User.findByIdAndDelete(college.adminUserId);
+    // 2. Delete College Admin user & College document if present
+    if (college) {
+      if (college.adminUserId) {
+        await User.findByIdAndDelete(college.adminUserId);
+      }
+      await College.findByIdAndDelete(id);
     }
-
-    // 3. Delete College document
-    await College.findByIdAndDelete(id);
 
     res.json({
       success: true,
-      message: `College "${college.name}" and all associated students & certificates deleted successfully.`
+      message: college ? `College "${college.name}" deleted successfully.` : 'College already deleted or removed.'
     });
   } catch (error) {
     next(error);

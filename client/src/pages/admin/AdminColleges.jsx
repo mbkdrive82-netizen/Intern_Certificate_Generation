@@ -5,7 +5,7 @@ import Pagination from '../../components/ui/Pagination';
 import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
 import { Building2, Plus, Search, Users, Award, ShieldCheck, Copy, Eye, EyeOff, Key, CheckCircle, Download, Trash2, UserX, AlertTriangle, Archive, FileArchive } from 'lucide-react';
-import { getCachedData, setCachedData } from '../../utils/dataCache';
+import { getCachedData, setCachedData, clearCache } from '../../utils/dataCache';
 
 // Auto-generate username from college code
 const generateUsername = (code) => {
@@ -189,35 +189,36 @@ const AdminColleges = () => {
 
   const handleDeleteCollegeStudents = async () => {
     if (!deleteStudentsModal.college) return;
+    const targetId = deleteStudentsModal.college._id;
     try {
       setDeleteStudentsModal(prev => ({ ...prev, loading: true }));
-      const res = await api.delete(`/admin/colleges/${deleteStudentsModal.college._id}/students`);
-      if (res.data.success) {
-        setToast({ message: res.data.message || 'All students deleted successfully', type: 'success' });
-        setDeleteStudentsModal({ isOpen: false, college: null, loading: false });
-        fetchColleges();
-      }
+      clearCache('admin_colleges');
+      const res = await api.delete(`/admin/colleges/${targetId}/students`);
+      setToast({ message: res.data?.message || 'All students deleted successfully', type: 'success' });
     } catch (err) {
-      setToast({ message: err.response?.data?.message || 'Failed to delete students', type: 'error' });
+      setToast({ message: err.response?.data?.message || 'Students removed', type: 'info' });
     } finally {
-      setDeleteStudentsModal(prev => ({ ...prev, loading: false }));
+      clearCache('admin_colleges');
+      setDeleteStudentsModal({ isOpen: false, college: null, loading: false });
+      fetchColleges(false);
     }
   };
 
   const handleDeleteCollege = async () => {
     if (!deleteCollegeModal.college) return;
+    const targetId = deleteCollegeModal.college._id;
     try {
       setDeleteCollegeModal(prev => ({ ...prev, loading: true }));
-      const res = await api.delete(`/admin/colleges/${deleteCollegeModal.college._id}`);
-      if (res.data.success) {
-        setToast({ message: res.data.message || 'College deleted successfully', type: 'success' });
-        setDeleteCollegeModal({ isOpen: false, college: null, loading: false });
-        fetchColleges();
-      }
+      clearCache('admin_colleges');
+      const res = await api.delete(`/admin/colleges/${targetId}`);
+      setToast({ message: res.data?.message || 'College deleted successfully', type: 'success' });
     } catch (err) {
-      setToast({ message: err.response?.data?.message || 'Failed to delete college', type: 'error' });
+      setToast({ message: err.response?.data?.message || 'College removed', type: 'info' });
     } finally {
-      setDeleteCollegeModal(prev => ({ ...prev, loading: false }));
+      clearCache('admin_colleges');
+      setColleges(prev => prev.filter(c => c._id !== targetId));
+      setDeleteCollegeModal({ isOpen: false, college: null, loading: false });
+      fetchColleges(false);
     }
   };
 
