@@ -1091,6 +1091,13 @@ const getCertificateHtmlPreview = async (req, res, next) => {
       html += responsiveScript;
     }
 
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET /api/admin/certificates/:id/download-pdf
 const downloadCertificatePdf = async (req, res, next) => {
   try {
