@@ -541,9 +541,7 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
 
   const college = await College.findById(collegeId);
   if (!college) {
-    const error = new Error('College not found');
-    error.statusCode = 404;
-    throw error;
+    return res.status(404).json({ success: false, message: 'College not found' });
   }
 
   const studentQuery = { collegeId: college._id };
@@ -551,11 +549,9 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
     studentQuery.department = department;
   }
 
-  const students = await Student.find(studentQuery).sort({ name: 1 });
+  const students = await Student.find(studentQuery).populate('collegeId').sort({ name: 1 });
   if (!students || students.length === 0) {
-    const error = new Error('No students enrolled in this college.');
-    error.statusCode = 400;
-    throw error;
+    return res.status(400).json({ success: false, message: 'No students enrolled in this college.' });
   }
 
   const cleanCollegeName = college.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
@@ -563,6 +559,107 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
     ? `${cleanCollegeName}_${department.replace(/[^a-zA-Z0-9_\-]/g, '_')}_Certificates.zip`
     : `${cleanCollegeName}_Certificates.zip`;
 
+  // Pre-load all database context in parallel (0 DB queries during generation)
+  const [allCompanies, activeTemplate, allCourses, allSettings, existingCerts] = await Promise.all([
+    Company.find().lean(),
+    CertificateTemplate.findOne({ isActive: true }).lean(),
+    Course.find().lean(),
+    Setting.find({ key: { $in: ['tnskill_logo', 'sm_groups_logo'] } }).lean(),
+    Certificate.find({ studentId: { $in: students.map(s => s._id) } }).lean()
+  ]);
+
+  const certsMap = new Map();
+  existingCerts.forEach(c => certsMap.set(String(c.studentId), c));
+
+  const cleanMap = new Map();
+  allCompanies.forEach(c => {
+    const clean = (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    cleanMap.set(clean, c);
+  });
+  const findMatchingCompany = (compName) => {
+    if (!compName) return null;
+    const target = String(compName).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (cleanMap.has(target)) return cleanMap.get(target);
+    for (const [k, v] of cleanMap.entries()) {
+      if (k.includes(target) || target.includes(k)) return v;
+    }
+    return allCompanies[0] || null;
+  };
+
+  const courseMap = new Map();
+  allCourses.forEach(c => courseMap.set((c.name || '').toLowerCase().trim(), c));
+  const findCourse = (courseName) => {
+    if (!courseName) return null;
+    return courseMap.get(String(courseName).toLowerCase().trim()) || null;
+  };
+
+  const tnSkillSetting = allSettings.find(s => s.key === 'tnskill_logo');
+  const smLogoSetting = allSettings.find(s => s.key === 'sm_groups_logo');
+
+  const cachedContext = {
+    certsMap,
+    activeTemplate,
+    findMatchingCompany,
+    findCourse,
+    tnSkillLogoPath: tnSkillSetting?.value,
+    smLogoPath: smLogoSetting?.value
+  };
+
+  // Identify missing PDF files on disk
+  const missingStudents = [];
+  for (const student of students) {
+    const cert = certsMap.get(String(student._id));
+    const filePath = cert && cert.filePath
+      ? (path.isAbsolute(cert.filePath) ? cert.filePath : path.join(__dirname, '../../', cert.filePath))
+      : null;
+    if (!cert || !filePath || !fs.existsSync(filePath)) {
+      missingStudents.push(student);
+    }
+  }
+
+  // If any PDFs are missing from disk, generate using single reusable browser
+  if (missingStudents.length > 0) {
+    const executablePath = getBrowserExecutablePath();
+    const browser = await puppeteer.launch({
+      executablePath,
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process'
+      ]
+    });
+
+    try {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+      for (const student of missingStudents) {
+        try {
+          const res = await generateStudentCertificate(
+            student._id,
+            { skipPreviewScreenshot: true, student },
+            browser,
+            page,
+            cachedContext
+          );
+          if (res && res.certificate) {
+            certsMap.set(String(student._id), res.certificate);
+          }
+        } catch (e) {
+          console.error(`[ZIP Generator] Error rendering for ${student.name}:`, e.message);
+        }
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+
+  // Stream ZIP archive to response
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
 
@@ -572,37 +669,21 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
 
   archive.on('error', (err) => {
     console.error('Archiver error:', err);
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: 'Failed to generate ZIP archive' });
-    }
   });
 
   archive.pipe(res);
 
   for (const student of students) {
-    try {
-      let certificate = await Certificate.findOne({ studentId: student._id });
-      let filePath = certificate && certificate.filePath
-        ? (path.isAbsolute(certificate.filePath) ? certificate.filePath : path.join(__dirname, '../../', certificate.filePath))
-        : null;
+    const cert = certsMap.get(String(student._id));
+    const filePath = cert && cert.filePath
+      ? (path.isAbsolute(cert.filePath) ? cert.filePath : path.join(__dirname, '../../', cert.filePath))
+      : null;
 
-      // If certificate PDF is missing on disk or not yet generated, generate it on-the-fly
-      if (!certificate || !filePath || !fs.existsSync(filePath)) {
-        const genResult = await generateStudentCertificate(student._id, { regenerate: false });
-        certificate = genResult.certificate;
-        filePath = path.isAbsolute(certificate.filePath)
-          ? certificate.filePath
-          : path.join(__dirname, '../../', certificate.filePath);
-      }
-
-      if (filePath && fs.existsSync(filePath)) {
-        const sanitizedStudentName = student.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
-        const regOrId = (student.studentId || '').replace(/[^a-zA-Z0-9_\-]/g, '_') || String(student._id);
-        const entryName = `${sanitizedStudentName}_${regOrId}_Certificate.pdf`;
-        archive.file(filePath, { name: entryName });
-      }
-    } catch (err) {
-      console.error(`Error adding certificate for student ${student.name}:`, err.message);
+    if (filePath && fs.existsSync(filePath)) {
+      const sanitizedStudentName = student.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const regOrId = (student.studentId || '').replace(/[^a-zA-Z0-9_\-]/g, '_') || String(student._id);
+      const entryName = `${sanitizedStudentName}_${regOrId}_Certificate.pdf`;
+      archive.file(filePath, { name: entryName });
     }
   }
 
