@@ -407,10 +407,35 @@ const exportStudentCredentials = async (req, res, next) => {
 // Companies & Courses
 const getCompanies = async (req, res, next) => {
   try {
-    const rawCompanies = await Company.find().sort({ name: 1 }).lean();
+    const rawCompanies = await Company.aggregate([
+      {
+        $project: {
+          name: 1,
+          templateStyle: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          hasLogo: {
+            $cond: [
+              { $and: [{ $ne: ['$logoPath', ''] }, { $ne: ['$logoPath', null] }] },
+              true,
+              false
+            ]
+          },
+          hasBgImage: {
+            $cond: [
+              { $and: [{ $ne: ['$bgImagePath', ''] }, { $ne: ['$bgImagePath', null] }] },
+              true,
+              false
+            ]
+          }
+        }
+      },
+      { $sort: { name: 1 } }
+    ]);
+
     const companies = rawCompanies.map((comp) => {
-      const hasLogo = Boolean(comp.logoPath);
-      const hasBg = Boolean(comp.bgImagePath);
+      const hasLogo = Boolean(comp.hasLogo);
+      const hasBg = Boolean(comp.hasBgImage);
       return {
         _id: comp._id,
         name: comp.name,
@@ -418,10 +443,10 @@ const getCompanies = async (req, res, next) => {
         hasLogo,
         hasBgImage: hasBg,
         logoPath: hasLogo
-          ? (comp.logoPath.startsWith('data:') ? `api/admin/companies/${comp._id}/logo-image?v=${comp.updatedAt ? new Date(comp.updatedAt).getTime() : Date.now()}` : comp.logoPath)
+          ? `api/admin/companies/${comp._id}/logo-image?v=${comp.updatedAt ? new Date(comp.updatedAt).getTime() : Date.now()}`
           : '',
         bgImagePath: hasBg
-          ? (comp.bgImagePath.startsWith('data:') ? `api/admin/companies/${comp._id}/bg-image?v=${comp.updatedAt ? new Date(comp.updatedAt).getTime() : Date.now()}` : comp.bgImagePath)
+          ? `api/admin/companies/${comp._id}/bg-image?v=${comp.updatedAt ? new Date(comp.updatedAt).getTime() : Date.now()}`
           : '',
         createdAt: comp.createdAt,
         updatedAt: comp.updatedAt
