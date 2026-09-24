@@ -44,7 +44,8 @@ const AdminCompanies = () => {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    fetchCompanies();
+    const hasCache = cachedCompanies && cachedCompanies.length > 0;
+    fetchCompanies(hasCache);
     fetchSmLogo();
   }, []);
 
@@ -326,10 +327,20 @@ const AdminCompanies = () => {
             </button>
           </div>
 
-          {loading ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-400">
-              <div className="inline-block w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-2" />
-              <p className="text-xs text-slate-500 font-bold">Loading sub-companies...</p>
+          {loading && companies.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs animate-pulse space-y-4">
+                  <div className="flex items-center space-x-3.5">
+                    <div className="w-14 h-14 rounded-xl bg-slate-200 flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-slate-200 rounded-md w-3/4" />
+                      <div className="h-3 bg-slate-100 rounded-md w-1/2" />
+                    </div>
+                  </div>
+                  <div className="h-28 bg-slate-100 rounded-xl" />
+                </div>
+              ))}
             </div>
           ) : companies.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400">

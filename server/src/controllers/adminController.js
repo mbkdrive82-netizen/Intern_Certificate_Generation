@@ -407,7 +407,7 @@ const exportStudentCredentials = async (req, res, next) => {
 // Companies & Courses
 const getCompanies = async (req, res, next) => {
   try {
-    const companies = await Company.find().sort({ name: 1 });
+    const companies = await Company.find().sort({ name: 1 }).lean();
     res.json({ success: true, companies });
   } catch (error) {
     next(error);
