@@ -4,7 +4,7 @@ import Modal from '../../components/ui/Modal';
 import Pagination from '../../components/ui/Pagination';
 import Toast from '../../components/ui/Toast';
 import api from '../../services/api';
-import { Building2, Plus, Search, Users, Award, ShieldCheck, Copy, Eye, EyeOff, Key, CheckCircle, Download, Trash2, UserX, AlertTriangle } from 'lucide-react';
+import { Building2, Plus, Search, Users, Award, ShieldCheck, Copy, Eye, EyeOff, Key, CheckCircle, Download, Trash2, UserX, AlertTriangle, Archive, FileArchive } from 'lucide-react';
 import { getCachedData, setCachedData } from '../../utils/dataCache';
 
 // Auto-generate username from college code
@@ -57,6 +57,7 @@ const AdminColleges = () => {
 
   // Per-row download loading state
   const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingZipId, setDownloadingZipId] = useState(null);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -154,6 +155,35 @@ const AdminColleges = () => {
       setToast({ message: err.response?.data?.message || 'Failed to reset credentials', type: 'error' });
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const downloadAllCertificatesZip = async (col) => {
+    try {
+      setDownloadingZipId(col._id);
+      setToast({ message: `Preparing & packing all certificates for ${col.name}... Please wait a moment.`, type: 'info' });
+
+      const res = await api.get(`/admin/colleges/${col._id}/download-certificates-zip`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanName = (col.name || 'College').replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.download = `${cleanName}_Certificates.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      setToast({ message: `Downloaded all certificates for ${col.name}!`, type: 'success' });
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Failed to download certificates ZIP. Ensure certificates are generated.', type: 'error' });
+    } finally {
+      setDownloadingZipId(null);
     }
   };
 
@@ -292,6 +322,20 @@ const AdminColleges = () => {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => downloadAllCertificatesZip(col)}
+                          disabled={downloadingZipId === col._id || (col.studentCount || 0) === 0}
+                          title={`Download all certificates for ${col.name} as ZIP`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                        >
+                          {downloadingZipId === col._id ? (
+                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Archive className="w-3.5 h-3.5" />
+                          )}
+                          <span className="hidden md:inline">{downloadingZipId === col._id ? 'Packing ZIP...' : 'Certificates ZIP'}</span>
+                        </button>
+
                         <button
                           onClick={() => resetAndDownload(col)}
                           disabled={downloadingId === col._id}

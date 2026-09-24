@@ -6,7 +6,8 @@ import {
   ChevronRight,
   Folder,
   ArrowLeft,
-  Download
+  Download,
+  Archive
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ const TNSkillsColleges = () => {
   const [colleges, setColleges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCollege, setSelectedCollege] = useState(null);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   useEffect(() => {
     fetchColleges();
@@ -31,6 +33,31 @@ const TNSkillsColleges = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const downloadCollegeZip = async (college) => {
+    if (!college) return;
+    try {
+      setDownloadingZip(true);
+      const res = await api.get(`/tnskills/colleges/${college._id}/download-certificates-zip`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const cleanName = (college.name || 'College').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.download = `${cleanName}_Certificates.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('ZIP download error:', err);
+      alert('Failed to download certificates ZIP.');
+    } finally {
+      setDownloadingZip(false);
     }
   };
 
@@ -58,7 +85,7 @@ const TNSkillsColleges = () => {
   return (
     <AppLayout title={selectedCollege ? selectedCollege.name : 'Colleges'}>
       <div className="space-y-5 pb-8">
-        {/* Header with Breadcrumb & Export CSV (Matching reference screenshot) */}
+        {/* Header with Breadcrumb & Export CSV */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
           <div>
             {selectedCollege ? (
@@ -91,13 +118,28 @@ const TNSkillsColleges = () => {
 
           <div className="flex items-center space-x-2.5">
             {selectedCollege && (
-              <button
-                onClick={() => setSelectedCollege(null)}
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back to Colleges</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setSelectedCollege(null)}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Colleges</span>
+                </button>
+
+                <button
+                  onClick={() => downloadCollegeZip(selectedCollege)}
+                  disabled={downloadingZip || (selectedCollege.studentCount || 0) === 0}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                >
+                  {downloadingZip ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Archive className="w-3.5 h-3.5" />
+                  )}
+                  <span>{downloadingZip ? 'Packing ZIP...' : 'Download Certificates (ZIP)'}</span>
+                </button>
+              </>
             )}
 
             <button

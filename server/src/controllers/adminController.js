@@ -11,7 +11,7 @@ const CertificateTemplate = require('../models/CertificateTemplate');
 const Certificate = require('../models/Certificate');
 const Setting = require('../models/Setting');
 const { processStudentExcel, generateCredentialExcelBuffer } = require('../services/excelService');
-const { generateStudentCertificate, generateBulkCertificates: bulkGenCertService, getBulkProgress } = require('../services/certificateService');
+const { generateStudentCertificate, generateBulkCertificates: bulkGenCertService, getBulkProgress, streamCollegeCertificatesZip } = require('../services/certificateService');
 
 // GET /api/admin/dashboard
 const getDashboard = async (req, res, next) => {
@@ -234,6 +234,17 @@ const resetCollegeCredentials = async (req, res, next) => {
         password: newPassword
       }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/admin/colleges/:id/download-certificates-zip
+const downloadCollegeCertificatesZip = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { department } = req.query;
+    await streamCollegeCertificatesZip(id, res, { department });
   } catch (error) {
     next(error);
   }
@@ -1180,6 +1191,7 @@ module.exports = {
   deleteCollege,
   deleteCollegeStudents,
   resetCollegeCredentials,
+  downloadCollegeCertificatesZip,
   getStudents,
   getStudentById,
   deleteStudent,

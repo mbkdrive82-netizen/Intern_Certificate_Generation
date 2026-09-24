@@ -7,7 +7,8 @@ const {
   getCollegeById,
   getCollegeDepartments,
   getCollegeStudents,
-  getStudentDetail
+  getStudentDetail,
+  downloadCollegeCertificatesZip
 } = require('../controllers/tnskillsController');
 
 // Requires TNSKILLS_ADMIN or SM_GROUPS_ADMIN
@@ -18,6 +19,7 @@ router.get('/colleges', getColleges);
 router.get('/colleges/:id', getCollegeById);
 router.get('/colleges/:id/departments', getCollegeDepartments);
 router.get('/colleges/:id/students', getCollegeStudents);
+router.get('/colleges/:id/download-certificates-zip', downloadCollegeCertificatesZip);
 router.get('/students/:id', getStudentDetail);
 
 module.exports = router;

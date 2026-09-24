@@ -13,24 +13,31 @@ const Navbar = ({ title, onRefresh, onToggleMobileMenu }) => {
     if (user?.role !== 'SM_GROUPS_ADMIN') return;
 
     let isMounted = true;
+    let timerId = null;
+
     const checkBatch = async () => {
       try {
         const res = await api.get('/admin/certificates/bulk-progress');
         if (isMounted) {
           if (res.data?.success && res.data?.progress?.inProgress) {
             setActiveBatch(res.data.progress);
+            timerId = setTimeout(checkBatch, 1500); // Poll fast while batch is active
           } else {
             setActiveBatch(null);
+            timerId = setTimeout(checkBatch, 5000); // Poll relaxed otherwise
           }
         }
-      } catch (err) {}
+      } catch (err) {
+        if (isMounted) {
+          timerId = setTimeout(checkBatch, 8000); // Backoff on server sleeping/error
+        }
+      }
     };
 
     checkBatch();
-    const interval = setInterval(checkBatch, 1500);
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (timerId) clearTimeout(timerId);
     };
   }, [user]);
 

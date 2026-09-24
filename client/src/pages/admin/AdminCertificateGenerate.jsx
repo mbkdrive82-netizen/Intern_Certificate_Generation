@@ -33,57 +33,46 @@ const AdminCertificateGenerate = () => {
 
   const [toast, setToast] = useState(null);
   const pollIntervalRef = useRef(null);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  const loadAllData = async () => {
+    try {
+      setDataLoading(true);
+      const [colRes, compRes, stuRes, tplRes] = await Promise.allSettled([
+        api.get('/admin/colleges?limit=100'),
+        api.get('/admin/companies'),
+        api.get('/admin/students?limit=500'),
+        api.get('/admin/certificate-templates')
+      ]);
+
+      if (colRes.status === 'fulfilled' && colRes.value.data?.success) {
+        setColleges(colRes.value.data.colleges || []);
+      }
+      if (compRes.status === 'fulfilled' && compRes.value.data?.success) {
+        setCompanies(compRes.value.data.companies || []);
+      }
+      if (stuRes.status === 'fulfilled' && stuRes.value.data?.success) {
+        setStudents(stuRes.value.data.students || []);
+        setTotalStudentsCount(stuRes.value.data.total || stuRes.value.data.students?.length || 0);
+      }
+      if (tplRes.status === 'fulfilled' && tplRes.value.data?.success) {
+        setTemplates(tplRes.value.data.templates || []);
+      }
+    } catch (e) {
+      console.error('Failed to load certificate center data:', e);
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchColleges();
-    fetchStudents();
-    fetchCompanies();
-    fetchTemplates();
+    loadAllData();
     checkActiveGeneration();
 
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, []);
-
-  const fetchColleges = async () => {
-    try {
-      const res = await api.get('/admin/colleges?limit=100');
-      if (res.data.success) setColleges(res.data.colleges);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const fetchCompanies = async () => {
-    try {
-      const res = await api.get('/admin/companies');
-      if (res.data.success) setCompanies(res.data.companies);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      const res = await api.get('/admin/students?limit=500');
-      if (res.data.success) {
-        setStudents(res.data.students || []);
-        setTotalStudentsCount(res.data.total || res.data.students?.length || 0);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const fetchTemplates = async () => {
-    try {
-      const res = await api.get('/admin/certificate-templates');
-      if (res.data.success) setTemplates(res.data.templates);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleSingleGenerate = async (e) => {
     e.preventDefault();

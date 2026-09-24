@@ -224,16 +224,18 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
       margin: { top: 0, right: 0, bottom: 0, left: 0 }
     });
 
-    // Generate Real High-Resolution JPEG Preview & Base64 URI for permanent persistent storage
-    const previewBuffer = await page.screenshot({
-      type: 'jpeg',
-      quality: 85
-    });
-    const base64Preview = `data:image/jpeg;base64,${previewBuffer.toString('base64')}`;
-
-    try {
-      fs.writeFileSync(pngFilePath, previewBuffer);
-    } catch (e) {}
+    let base64Preview = '';
+    // Only capture heavy Base64 screenshot when not running bulk batch to save RAM & 10x speedup
+    if (!options.skipPreviewScreenshot) {
+      const previewBuffer = await page.screenshot({
+        type: 'jpeg',
+        quality: 80
+      });
+      base64Preview = `data:image/jpeg;base64,${previewBuffer.toString('base64')}`;
+      try {
+        fs.writeFileSync(pngFilePath, previewBuffer);
+      } catch (e) {}
+    }
 
     if (!existingPage) {
       await page.close();
@@ -250,7 +252,7 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
 
     const relativePdfPath = path.join('certificates', pdfFilename).replace(/\\/g, '/');
 
-    // 9. Update or Create MongoDB record with permanent Base64 preview
+    // 9. Update or Create MongoDB record
     if (!existingCert) {
       existingCert = new Certificate({
         certificateId,
@@ -259,14 +261,14 @@ const generateStudentCertificate = async (studentId, options = {}, existingBrows
         companyId: company ? company._id : null,
         courseId: course ? course._id : null,
         filePath: relativePdfPath,
-        previewImagePath: base64Preview,
+        previewImagePath: base64Preview || undefined,
         status: 'GENERATED',
         generatedAt: new Date()
       });
     } else {
       existingCert.certificateId = certificateId;
       existingCert.filePath = relativePdfPath;
-      existingCert.previewImagePath = base64Preview;
+      if (base64Preview) existingCert.previewImagePath = base64Preview;
       existingCert.status = 'GENERATED';
       existingCert.errorMessage = '';
       existingCert.generatedAt = new Date();
@@ -394,8 +396,22 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
       bulkProgress.currentStudent = student.name;
       bulkProgress.percent = Math.round(((i + 1) / students.length) * 100);
 
+      // Periodically recycle page every 25 students to release memory
+      if (i > 0 && i % 25 === 0) {
+        if (batchPage) {
+          try { await batchPage.close(); } catch (e) {}
+        }
+        batchPage = await batchBrowser.newPage();
+        await batchPage.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+      }
+
       try {
-        const res = await generateStudentCertificate(student._id, options, batchBrowser, batchPage);
+        const res = await generateStudentCertificate(
+          student._id,
+          { ...options, skipPreviewScreenshot: true },
+          batchBrowser,
+          batchPage
+        );
         if (res.alreadyGenerated) {
           skippedCount++;
         } else {
@@ -410,13 +426,13 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
         });
       }
 
-        bulkProgress.successCount = successCount;
-        bulkProgress.skippedCount = skippedCount;
-        bulkProgress.failedCount = failedCount;
+      bulkProgress.successCount = successCount;
+      bulkProgress.skippedCount = skippedCount;
+      bulkProgress.failedCount = failedCount;
 
-        // Micro-yield to allow Express event loop to handle concurrent polling requests instantly
-        await new Promise(r => setTimeout(r, 40));
-      }
+      // Fast yield
+      await new Promise(r => setTimeout(r, 20));
+    }
   } finally {
     if (batchPage) {
       try { await batchPage.close(); } catch (e) {}
@@ -444,8 +460,85 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
   };
 };
 
+// Stream all certificates of a college as a single ZIP archive
+const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
+  const archiver = require('archiver');
+  const { department } = options;
+
+  const college = await College.findById(collegeId);
+  if (!college) {
+    const error = new Error('College not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const studentQuery = { collegeId: college._id };
+  if (department) {
+    studentQuery.department = department;
+  }
+
+  const students = await Student.find(studentQuery).sort({ name: 1 });
+  if (!students || students.length === 0) {
+    const error = new Error('No students enrolled in this college.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const cleanCollegeName = college.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const zipFilename = department
+    ? `${cleanCollegeName}_${department.replace(/[^a-zA-Z0-9_\-]/g, '_')}_Certificates.zip`
+    : `${cleanCollegeName}_Certificates.zip`;
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+
+  const archive = archiver('zip', {
+    zlib: { level: 6 }
+  });
+
+  archive.on('error', (err) => {
+    console.error('Archiver error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'Failed to generate ZIP archive' });
+    }
+  });
+
+  archive.pipe(res);
+
+  for (const student of students) {
+    try {
+      let certificate = await Certificate.findOne({ studentId: student._id });
+      let filePath = certificate && certificate.filePath
+        ? (path.isAbsolute(certificate.filePath) ? certificate.filePath : path.join(__dirname, '../../', certificate.filePath))
+        : null;
+
+      // If certificate PDF is missing on disk or not yet generated, generate it on-the-fly
+      if (!certificate || !filePath || !fs.existsSync(filePath)) {
+        const genResult = await generateStudentCertificate(student._id, { regenerate: false });
+        certificate = genResult.certificate;
+        filePath = path.isAbsolute(certificate.filePath)
+          ? certificate.filePath
+          : path.join(__dirname, '../../', certificate.filePath);
+      }
+
+      if (filePath && fs.existsSync(filePath)) {
+        const sanitizedStudentName = student.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
+        const regOrId = (student.studentId || '').replace(/[^a-zA-Z0-9_\-]/g, '_') || String(student._id);
+        const entryName = `${sanitizedStudentName}_${regOrId}_Certificate.pdf`;
+        archive.file(filePath, { name: entryName });
+      }
+    } catch (err) {
+      console.error(`Error adding certificate for student ${student.name}:`, err.message);
+    }
+  }
+
+  await archive.finalize();
+};
+
 module.exports = {
   generateStudentCertificate,
   generateBulkCertificates,
-  getBulkProgress
+  getBulkProgress,
+  streamCollegeCertificatesZip
 };
+

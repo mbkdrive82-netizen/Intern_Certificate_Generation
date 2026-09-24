@@ -10,6 +10,7 @@ const {
   deleteCollege,
   deleteCollegeStudents,
   resetCollegeCredentials,
+  downloadCollegeCertificatesZip,
   getStudents,
   getStudentById,
   deleteStudent,
@@ -48,6 +49,7 @@ router.put('/colleges/:id', updateCollege);
 router.delete('/colleges/:id', deleteCollege);
 router.delete('/colleges/:id/students', deleteCollegeStudents);
 router.post('/colleges/:id/reset-credentials', resetCollegeCredentials);
+router.get('/colleges/:id/download-certificates-zip', downloadCollegeCertificatesZip);
 
 // Students & Excel Upload
 router.get('/students', getStudents);

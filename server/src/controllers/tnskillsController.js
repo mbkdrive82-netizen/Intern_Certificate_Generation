@@ -241,11 +241,25 @@ const getStudentDetail = async (req, res, next) => {
   }
 };
 
+// GET /api/tnskills/colleges/:id/download-certificates-zip
+const downloadCollegeCertificatesZip = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { department } = req.query;
+    const { streamCollegeCertificatesZip } = require('../services/certificateService');
+    await streamCollegeCertificatesZip(id, res, { department });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboard,
   getColleges,
   getCollegeById,
   getCollegeDepartments,
   getCollegeStudents,
-  getStudentDetail
+  getStudentDetail,
+  downloadCollegeCertificatesZip
 };
+
