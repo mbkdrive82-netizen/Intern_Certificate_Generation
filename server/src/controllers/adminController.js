@@ -1000,6 +1000,54 @@ const getCertificates = async (req, res, next) => {
   }
 };
 
+// GET /api/admin/certificates/:id/preview-html
+const getCertificateHtmlPreview = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const mongoose = require('mongoose');
+    let cert = null;
+    if (mongoose.isValidObjectId(id)) {
+      cert = await Certificate.findById(id).populate('studentId');
+    }
+    if (!cert) {
+      cert = await Certificate.findOne({ certificateId: new RegExp(`^${id}$`, 'i') }).populate('studentId');
+    }
+    if (!cert || !cert.studentId) {
+      return res.status(404).send('<h2 style="font-family:sans-serif;text-align:center;margin-top:40px;color:#666;">Certificate preview not found</h2>');
+    }
+
+    const student = await Student.findById(cert.studentId._id || cert.studentId).populate('collegeId');
+    const compName = (student.company || '').trim();
+    const company = await Company.findOne({ name: new RegExp(`^${compName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }) || await Company.findOne();
+    const course = await Course.findOne({ name: new RegExp(`^${(student.course || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+    const template = cert.templateId ? await CertificateTemplate.findById(cert.templateId) : await CertificateTemplate.findOne({ isActive: true });
+
+    const { buildCertificateData, renderCertificateHtml } = require('../certificates/templates/certificateTemplate');
+    const certData = buildCertificateData(student, student.collegeId, company, course, cert.certificateId);
+
+    const Setting = require('../models/Setting');
+    const tnSkillSetting = await Setting.findOne({ key: 'tnskill_logo' });
+    if (tnSkillSetting && tnSkillSetting.value && fs.existsSync(tnSkillSetting.value)) {
+      certData.tnSkillLogoPath = tnSkillSetting.value;
+    }
+    const smLogoSetting = await Setting.findOne({ key: 'sm_groups_logo' });
+    if (smLogoSetting && smLogoSetting.value && fs.existsSync(smLogoSetting.value)) {
+      certData.smLogoPath = smLogoSetting.value;
+    } else if (template && template.smLogoPath && fs.existsSync(template.smLogoPath)) {
+      certData.smLogoPath = template.smLogoPath;
+    }
+
+    if (company && company.logoPath) certData.subLogoPath = company.logoPath;
+    if (company && company.bgImagePath) certData.bgImagePath = company.bgImagePath;
+
+    const html = renderCertificateHtml(certData);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET /api/admin/students/sample-excel
 const downloadSampleExcel = (req, res) => {
   const filePath = path.join(__dirname, '../../../students_150_companies.xlsx');
@@ -1275,5 +1323,6 @@ module.exports = {
   generateSingleCertificate,
   generateBulkCertificatesController,
   getBulkGenerationProgress,
-  getCertificates
+  getCertificates,
+  getCertificateHtmlPreview
 };

@@ -527,9 +527,9 @@ const AdminCertificates = () => {
                 />
               ) : (
                 <iframe
-                  src={`${getAssetUrl(previewCert.filePath || `certificates/${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${previewCert.certificateId}.pdf`)}#toolbar=0`}
-                  className="w-full h-[450px] rounded-lg border-0"
-                  title="Certificate PDF Preview"
+                  src={getAssetUrl(`api/admin/certificates/${previewCert._id || previewCert.certificateId}/preview-html`)}
+                  className="w-full h-[480px] rounded-lg border-0 bg-white"
+                  title="Certificate Visual Preview"
                 />
               )}
             </div>
