@@ -642,7 +642,7 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
         try {
           const res = await generateStudentCertificate(
             student._id,
-            { skipPreviewScreenshot: true, student },
+            { skipPreviewScreenshot: true, student, regenerate: true },
             browser,
             page,
             cachedContext
@@ -681,11 +681,20 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
 
   archive.pipe(res);
 
+  const certDir = path.join(__dirname, '../../certificates');
+
   for (const student of students) {
     const cert = certsMap.get(String(student._id));
-    const filePath = cert && cert.filePath
+    let filePath = cert && cert.filePath
       ? (path.isAbsolute(cert.filePath) ? cert.filePath : path.join(__dirname, '../../', cert.filePath))
       : null;
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      const sanitizedName = student.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const certId = cert ? cert.certificateId : 'SMG';
+      const fallbackPath = path.join(certDir, `${sanitizedName}_Certificate_${certId}.pdf`);
+      if (fs.existsSync(fallbackPath)) filePath = fallbackPath;
+    }
 
     if (filePath && fs.existsSync(filePath)) {
       const sanitizedStudentName = student.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
