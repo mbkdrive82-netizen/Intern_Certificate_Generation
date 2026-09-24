@@ -1091,8 +1091,54 @@ const getCertificateHtmlPreview = async (req, res, next) => {
       html += responsiveScript;
     }
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
+// GET /api/admin/certificates/:id/download-pdf
+const downloadCertificatePdf = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const mongoose = require('mongoose');
+    let cert = null;
+    if (mongoose.isValidObjectId(id)) {
+      cert = await Certificate.findById(id).populate('studentId');
+    }
+    if (!cert) {
+      cert = await Certificate.findOne({ certificateId: new RegExp(`^${id}$`, 'i') }).populate('studentId');
+    }
+    if (!cert || !cert.studentId) {
+      return res.status(404).json({ success: false, message: 'Certificate not found' });
+    }
+
+    const student = await Student.findById(cert.studentId._id || cert.studentId).populate('collegeId');
+    const sanitizedName = (student.name || 'Student').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const downloadFilename = `${sanitizedName}_Certificate_${cert.certificateId || 'SMG'}.pdf`;
+
+    const certDir = path.join(__dirname, '../../certificates');
+    let filePath = cert.filePath ? (path.isAbsolute(cert.filePath) ? cert.filePath : path.join(__dirname, '../../', cert.filePath)) : null;
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      const fallbackPath = path.join(certDir, `${sanitizedName}_Certificate_${cert.certificateId}.pdf`);
+      if (fs.existsSync(fallbackPath)) {
+        filePath = fallbackPath;
+      }
+    }
+
+    // If PDF file does not exist on disk, regenerate it instantly
+    if (!filePath || !fs.existsSync(filePath)) {
+      const { generateStudentCertificate } = require('../services/certificateService');
+      const genResult = await generateStudentCertificate(student._id, { regenerate: true, student });
+      if (genResult && genResult.certificate && genResult.certificate.filePath) {
+        filePath = path.isAbsolute(genResult.certificate.filePath)
+          ? genResult.certificate.filePath
+          : path.join(__dirname, '../../', genResult.certificate.filePath);
+      }
+    }
+
+    if (filePath && fs.existsSync(filePath)) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+      return res.sendFile(filePath);
+    } else {
+      return res.status(500).json({ success: false, message: 'Could not generate PDF file' });
+    }
   } catch (error) {
     next(error);
   }
@@ -1374,5 +1420,6 @@ module.exports = {
   generateBulkCertificatesController,
   getBulkGenerationProgress,
   getCertificates,
-  getCertificateHtmlPreview
+  getCertificateHtmlPreview,
+  downloadCertificatePdf
 };

@@ -617,7 +617,7 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
     }
   }
 
-  // If any PDFs are missing from disk, generate using single reusable browser
+  // If any PDFs are missing from disk, generate using 3 parallel worker pages
   if (missingStudents.length > 0) {
     const executablePath = getBrowserExecutablePath();
     const browser = await puppeteer.launch({
@@ -636,26 +636,41 @@ const streamCollegeCertificatesZip = async (collegeId, res, options = {}) => {
     });
 
     try {
-      const page = await browser.newPage();
-      await page.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
-      for (const student of missingStudents) {
-        try {
-          const res = await generateStudentCertificate(
-            student._id,
-            { skipPreviewScreenshot: true, student, regenerate: true },
-            browser,
-            page,
-            cachedContext
-          );
-          if (res && res.certificate) {
-            certsMap.set(String(student._id), res.certificate);
+      const concurrency = 3;
+      let currentIndex = 0;
+
+      const runWorker = async () => {
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1123, height: 794, deviceScaleFactor: 2 });
+        while (currentIndex < missingStudents.length) {
+          const student = missingStudents[currentIndex++];
+          if (!student) break;
+          try {
+            const res = await generateStudentCertificate(
+              student._id,
+              { skipPreviewScreenshot: true, student, regenerate: true },
+              browser,
+              page,
+              cachedContext
+            );
+            if (res && res.certificate) {
+              certsMap.set(String(student._id), res.certificate);
+            }
+          } catch (e) {
+            console.error(`[ZIP Generator] Error rendering for ${student.name}:`, e.message);
           }
-        } catch (e) {
-          console.error(`[ZIP Generator] Error rendering for ${student.name}:`, e.message);
         }
+        await page.close().catch(() => {});
+      };
+
+      const workers = [];
+      const numWorkers = Math.min(concurrency, missingStudents.length);
+      for (let i = 0; i < numWorkers; i++) {
+        workers.push(runWorker());
       }
+      await Promise.all(workers);
     } finally {
-      await browser.close();
+      await browser.close().catch(() => {});
     }
   }
 

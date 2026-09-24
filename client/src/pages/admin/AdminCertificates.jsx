@@ -117,6 +117,22 @@ const AdminCertificates = () => {
     }
   };
 
+  const handleDownloadPdf = (cert) => {
+    if (!cert) return;
+    const certId = cert._id || cert.certificateId;
+    const studentName = cert.studentId?.name || 'Certificate';
+    const filename = `${studentName.replace(/[^a-zA-Z0-9_-]/g, '_')}_${cert.certificateId || 'SMG'}.pdf`;
+    const backendUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api$/, '') : 'https://intern-certificate-generation.onrender.com';
+    const downloadUrl = `${backendUrl}/api/admin/certificates/${certId}/download-pdf`;
+
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   useEffect(() => {
     fetchCollegesAndCompanies();
   }, []);
@@ -139,7 +155,9 @@ const AdminCertificates = () => {
     };
 
     checkProgress();
-    const interval = setInterval(checkProgress, 2000);
+    // Only poll if background generation is actively running to conserve network & server resources
+    const pollInterval = bulkProgress?.inProgress ? 3000 : 10000;
+    const interval = setInterval(checkProgress, pollInterval);
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -527,17 +545,14 @@ const AdminCertificates = () => {
                                 <Eye className="w-3.5 h-3.5 text-slate-600" />
                                 <span>Preview</span>
                               </button>
-                              <a
-                                href={getAssetUrl(cert.filePath || `certificates/${(student.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${cert.certificateId}.pdf`)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={`${(student.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${cert.certificateId || 'SMG'}.pdf`}
+                              <button
+                                onClick={() => handleDownloadPdf(cert)}
                                 className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-colors cursor-pointer"
                                 title="Download Print-Ready PDF"
                               >
                                 <Download className="w-3.5 h-3.5" />
                                 <span>PDF</span>
-                              </a>
+                              </button>
                             </>
                           )}
                         </div>
@@ -631,16 +646,13 @@ const AdminCertificates = () => {
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Open Full View</span>
                 </a>
-                <a
-                  href={getAssetUrl(previewCert.filePath || `certificates/${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_Certificate_${previewCert.certificateId}.pdf`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download={`${(previewCert.studentId?.name || 'Certificate').replace(/[^a-zA-Z0-9]/g, '_')}_${previewCert.certificateId || 'SMG'}.pdf`}
+                <button
+                  onClick={() => handleDownloadPdf(previewCert)}
                   className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download Print-Ready PDF</span>
-                </a>
+                </button>
               </div>
             </div>
           </div>

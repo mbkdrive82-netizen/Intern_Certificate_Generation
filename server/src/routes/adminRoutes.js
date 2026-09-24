@@ -37,13 +37,15 @@ const {
   generateBulkCertificatesController,
   getBulkGenerationProgress,
   getCertificates,
-  getCertificateHtmlPreview
+  getCertificateHtmlPreview,
+  downloadCertificatePdf
 } = require('../controllers/adminController');
 
-// Public Streaming & Preview Endpoints (For fast browser <img> & <iframe> rendering without auth headers)
+// Public Streaming & Preview Endpoints (For fast browser <img> & direct PDF downloads without auth headers)
 router.get('/companies/:id/logo-image', getCompanyLogoImage);
 router.get('/companies/:id/bg-image', getCompanyBgImage);
 router.get('/certificates/:id/preview-html', getCertificateHtmlPreview);
+router.get('/certificates/:id/download-pdf', downloadCertificatePdf);
 
 // All other endpoints require SM_GROUPS_ADMIN role
 router.use(requireAuth, requireRole('SM_GROUPS_ADMIN'));

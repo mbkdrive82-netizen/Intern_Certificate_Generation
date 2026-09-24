@@ -158,31 +158,29 @@ const AdminColleges = () => {
     }
   };
 
-  const downloadAllCertificatesZip = async (col) => {
+  const downloadAllCertificatesZip = (col) => {
     try {
       setDownloadingZipId(col._id);
-      setToast({ message: `Preparing & packing all certificates for ${col.name}... Please wait a moment.`, type: 'info' });
+      setToast({ message: `Preparing & packing all certificates for ${col.name}... Download will start shortly.`, type: 'info' });
 
-      const res = await api.get(`/admin/colleges/${col._id}/download-certificates-zip`, {
-        responseType: 'blob'
-      });
-
-      const blob = new Blob([res.data], { type: 'application/zip' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
+      const backendUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api$/, '') : 'https://intern-certificate-generation.onrender.com';
       const cleanName = (col.name || 'College').replace(/[^a-zA-Z0-9_-]/g, '_');
-      a.download = `${cleanName}_Certificates.zip`;
+      const token = localStorage.getItem('token');
+      const downloadUrl = `${backendUrl}/api/admin/colleges/${col._id}/download-certificates-zip?token=${encodeURIComponent(token || '')}`;
+
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.setAttribute('download', `${cleanName}_Certificates.zip`);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
 
-      setToast({ message: `Downloaded all certificates for ${col.name}!`, type: 'success' });
+      setTimeout(() => {
+        setDownloadingZipId(null);
+      }, 3000);
     } catch (err) {
       console.error(err);
       setToast({ message: 'Failed to download certificates ZIP. Ensure certificates are generated.', type: 'error' });
-    } finally {
       setDownloadingZipId(null);
     }
   };
