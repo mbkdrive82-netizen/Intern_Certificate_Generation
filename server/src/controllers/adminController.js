@@ -10,6 +10,7 @@ const Course = require('../models/Course');
 const CertificateTemplate = require('../models/CertificateTemplate');
 const Certificate = require('../models/Certificate');
 const Setting = require('../models/Setting');
+const { getMetadata, invalidateMetadataCache, findCompanyByName, findCourseByName } = require('../utils/metaCache');
 const { processStudentExcel, generateCredentialExcelBuffer } = require('../services/excelService');
 const { generateStudentCertificate, generateBulkCertificates: bulkGenCertService, getBulkProgress, streamCollegeCertificatesZip } = require('../services/certificateService');
 
@@ -1005,34 +1006,45 @@ const getCertificateHtmlPreview = async (req, res, next) => {
   try {
     const { id } = req.params;
     const mongoose = require('mongoose');
+
+    // Pre-fetch metadata in parallel with DB search
+    const metaPromise = getMetadata();
+
     let cert = null;
     if (mongoose.isValidObjectId(id)) {
-      cert = await Certificate.findById(id).populate('studentId');
+      cert = await Certificate.findById(id).populate({ path: 'studentId', populate: { path: 'collegeId' } }).lean();
     }
     if (!cert) {
-      cert = await Certificate.findOne({ certificateId: new RegExp(`^${id}$`, 'i') }).populate('studentId');
+      cert = await Certificate.findOne({ certificateId: id }).populate({ path: 'studentId', populate: { path: 'collegeId' } }).lean();
     }
+    if (!cert) {
+      cert = await Certificate.findOne({ certificateId: new RegExp(`^${id}$`, 'i') }).populate({ path: 'studentId', populate: { path: 'collegeId' } }).lean();
+    }
+
+    const meta = await metaPromise;
+
     if (!cert || !cert.studentId) {
       return res.status(404).send('<h2 style="font-family:sans-serif;text-align:center;margin-top:40px;color:#666;">Certificate preview not found</h2>');
     }
 
-    const student = await Student.findById(cert.studentId._id || cert.studentId).populate('collegeId');
-    const compName = (student.company || '').trim();
-    const company = await Company.findOne({ name: new RegExp(`^${compName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }) || await Company.findOne();
-    const course = await Course.findOne({ name: new RegExp(`^${(student.course || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
-    const template = cert.templateId ? await CertificateTemplate.findById(cert.templateId) : await CertificateTemplate.findOne({ isActive: true });
+    const student = cert.studentId;
+    const college = student.collegeId;
+    const company = findCompanyByName(meta.companies, student.company);
+    const course = findCourseByName(meta.courses, student.course);
+    const template = meta.template;
 
     const { buildCertificateData, renderCertificateHtml } = require('../certificates/templates/certificateTemplate');
-    const certData = buildCertificateData(student, student.collegeId, company, course, cert.certificateId);
+    const certData = buildCertificateData(student, college, company, course, cert.certificateId);
 
-    const Setting = require('../models/Setting');
-    const tnSkillSetting = await Setting.findOne({ key: 'tnskill_logo' });
-    if (tnSkillSetting && tnSkillSetting.value && fs.existsSync(tnSkillSetting.value)) {
-      certData.tnSkillLogoPath = tnSkillSetting.value;
+    // Fast settings check from memory
+    const tnSkillLogo = meta.settings['tnskill_logo'];
+    if (tnSkillLogo && fs.existsSync(tnSkillLogo)) {
+      certData.tnSkillLogoPath = tnSkillLogo;
     }
-    const smLogoSetting = await Setting.findOne({ key: 'sm_groups_logo' });
-    if (smLogoSetting && smLogoSetting.value && fs.existsSync(smLogoSetting.value)) {
-      certData.smLogoPath = smLogoSetting.value;
+
+    const smLogo = meta.settings['sm_groups_logo'];
+    if (smLogo && fs.existsSync(smLogo)) {
+      certData.smLogoPath = smLogo;
     } else if (template && template.smLogoPath && fs.existsSync(template.smLogoPath)) {
       certData.smLogoPath = template.smLogoPath;
     }

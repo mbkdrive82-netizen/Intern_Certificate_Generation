@@ -18,8 +18,11 @@ const studentRoutes = require('./routes/studentRoutes');
 
 const app = express();
 
-// Connect to MongoDB Database
-connectDB();
+// Connect to MongoDB Database and warm up cache
+const { getMetadata } = require('./utils/metaCache');
+connectDB().then(() => {
+  getMetadata().catch(() => {});
+});
 
 // Express Middlewares & Universal CORS Configuration
 const corsOptions = {
