@@ -5,43 +5,53 @@ const fs = require('fs');
 const sampleData = [
   {
     Name: 'Arun Kumar',
-    College: 'ABC Engineering College',
-    Department: 'CSE',
-    Year: 'III',
-    Company: 'TechCorp Solutions',
-    Course: 'Full Stack Development'
+    College: 'AVS Engineering College',
+    Department: 'ECE',
+    Year: 'IV',
+    Company: 'SRI TECH',
+    Course: 'IoT Application (ESP32)',
+    'From Date': '01.06.2026',
+    'End Date': '15.06.2026'
   },
   {
     Name: 'Priya S',
-    College: 'ABC Engineering College',
+    College: 'AVS Engineering College',
     Department: 'ECE',
-    Year: 'II',
-    Company: 'TechCorp Solutions',
-    Course: 'Python Programming'
+    Year: 'IV',
+    Company: 'SRI TECH',
+    Course: 'IoT Application (ESP32)',
+    'From Date': '01.06.2026',
+    'End Date': '15.06.2026'
   },
   {
     Name: 'Rahul M',
-    College: 'XYZ College of Technology',
-    Department: 'IT',
-    Year: 'IV',
-    Company: 'Apex Innovations',
-    Course: 'Digital Marketing'
+    College: 'Paavai Engineering College',
+    Department: 'CSE',
+    Year: 'III',
+    Company: 'VENTHULIR',
+    Course: 'Full Stack Web Development',
+    'From Date': '05.06.2026',
+    'End Date': '20.06.2026'
   },
   {
     Name: 'Kavitha R',
-    College: 'XYZ College of Technology',
-    Department: 'CSE',
+    College: 'Paavai Engineering College',
+    Department: 'IT',
     Year: 'III',
-    Company: 'Apex Innovations',
-    Course: 'Data Analytics'
+    Company: 'MBK',
+    Course: 'Artificial Intelligence & Machine Learning',
+    'From Date': '10.06.2026',
+    'End Date': '25.06.2026'
   },
   {
     Name: 'Suresh V',
-    College: 'DEF Institute of Engineering',
+    College: 'AVS Engineering College',
     Department: 'MECH',
     Year: 'IV',
-    Company: 'TechCorp Solutions',
-    Course: 'AI & Machine Learning'
+    Company: 'PAVECH',
+    Course: 'Embedded Systems Design',
+    'From Date': '01.06.2026',
+    'End Date': '15.06.2026'
   }
 ];
 

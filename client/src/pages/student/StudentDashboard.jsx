@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import Badge from '../../components/ui/Badge';
 import api from '../../services/api';
-import { User, Award, Download, Building2, BookOpen, Briefcase, Calendar } from 'lucide-react';
+import { getAssetUrl } from '../../utils/imageUrl';
+import { User, Award, Download, Building2, BookOpen, Briefcase, Calendar, Eye, X, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { downloadPdfFromImage } from '../../utils/pdfDownloader';
@@ -11,6 +12,8 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 const StudentDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetchStudentData();
@@ -30,20 +33,52 @@ const StudentDashboard = () => {
     }
   };
 
-  const [downloading, setDownloading] = useState(false);
-
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
       setDownloading(true);
       const cert = data?.certificate;
       const certId = cert?.certificateId || 'ID';
-      const filename = `Certificate_${certId}.pdf`;
-      const source = cert?.previewImagePath || getAssetUrl(cert?.filePath);
-      downloadPdfFromImage(source, filename);
+      const studentName = (student?.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `${studentName}_Certificate_${certId}.pdf`;
+
+      // 1. Instant local client-side PDF generation if preview image is available (0.05s)
+      if (cert?.previewImagePath) {
+        await downloadPdfFromImage(getAssetUrl(cert.previewImagePath), filename);
+        return;
+      }
+
+      // 2. Direct backend PDF stream with 5s timeout
+      try {
+        const res = await api.get('/student/certificate/download', {
+          responseType: 'blob',
+          timeout: 5000
+        });
+        const blob = new Blob([res.data], { type: 'application/pdf' });
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+        return;
+      } catch (apiErr) {
+        console.warn('API direct download failed or timed out:', apiErr);
+      }
+
+      // 3. Fallback to direct asset link
+      const fallbackUrl = getAssetUrl(cert?.filePath);
+      if (fallbackUrl) {
+        window.open(fallbackUrl, '_blank');
+      } else {
+        alert('Certificate file is not ready yet. Please try again in a few moments.');
+      }
     } catch (err) {
-      console.error('Direct download error:', err);
+      console.error('Download error:', err);
+      alert('Unable to download certificate at this moment. Please try viewing it first.');
     } finally {
-      setTimeout(() => setDownloading(false), 500);
+      setDownloading(false);
     }
   };
 
@@ -68,26 +103,36 @@ const StudentDashboard = () => {
             <p className="text-xs font-mono text-slate-500 font-bold">Student ID: {student?.studentId}</p>
           </div>
 
-          <div className="flex flex-col items-start md:items-end space-y-2">
+          <div className="flex flex-col items-start md:items-end space-y-3">
             <Badge status={certificateStatus} />
             {certificateStatus === 'GENERATED' && (
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs text-xs transition-all disabled:opacity-60"
-              >
-                {downloading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Downloading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span>Download Print-Ready PDF</span>
-                  </>
-                )}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setPreviewModalOpen(true)}
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl border border-blue-200 text-xs transition-all cursor-pointer shadow-xs"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>View Certificate</span>
+                </button>
+
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs text-xs transition-all disabled:opacity-60 cursor-pointer"
+                >
+                  {downloading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Downloading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      <span>Download Print-Ready PDF</span>
+                    </>
+                  )}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -139,6 +184,53 @@ const StudentDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Full Certificate Preview Modal */}
+      {previewModalOpen && certificate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Certificate of Completion</h3>
+                <p className="text-xs font-mono text-blue-700 font-bold">ID: {certificate.certificateId}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs transition-all cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download PDF</span>
+                </button>
+                <button
+                  onClick={() => setPreviewModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-slate-100">
+              {certificate.previewImagePath ? (
+                <img
+                  src={getAssetUrl(certificate.previewImagePath)}
+                  alt="Certificate Full View"
+                  className="w-full h-auto max-h-[75vh] object-contain rounded-lg shadow-md border border-slate-200 bg-white"
+                />
+              ) : (
+                <div className="p-12 text-center text-slate-500">
+                  <p className="font-bold text-sm">Visual preview is being prepared.</p>
+                  <p className="text-xs mt-1">Please use the download button to get your print-ready PDF.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };

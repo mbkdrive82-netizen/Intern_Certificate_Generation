@@ -461,3 +461,24 @@ html, body {
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   white-space: nowrap;
 }
+
+.cert-issue-date {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 7pt;
+  font-weight: 500;
+  color: #475569;
+  letter-spacing: 0.5px;
+  margin-top: 1mm;
+}
+
+.cert-issue-date strong {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.date-highlight {
+  font-weight: 700;
+  color: var(--primary-color);
+  letter-spacing: 0.3px;
+}
+

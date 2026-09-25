@@ -87,6 +87,8 @@ const buildCertificateData = (student, college, company, course, certificateId) 
     companyTheme = `theme-${compStyle.toLowerCase()}`;
   }
 
+  const issueDateFormatted = student.issueDate ? student.issueDate : certDate;
+
   return {
     studentName: student.name || 'Student',
     studentId: student.studentId || 'N/A',
@@ -99,7 +101,9 @@ const buildCertificateData = (student, college, company, course, certificateId) 
     subCompanyName: compName,
     companyTheme: companyTheme,
     certificateId: certificateId,
-    certificateDate: certDate,
+    certificateDate: issueDateFormatted,
+    fromDate: student.fromDate || '',
+    endDate: student.endDate || '',
     tnSkillLogoPath: '', // Common TNSkill master logo for top center
     smLogoPath: '', // Provided from template if configured
     subLogoPath: company ? company.logoPath : '',
@@ -164,6 +168,16 @@ const renderCertificateHtml = (data) => {
     ? fileToDataUri(data.bgImagePath)
     : fileToDataUri(defaultBgPath);
   html = html.replace(/{{bg_image_src}}/g, bgImageDataUri);
+
+  // Handle Date range conditionals:
+  if (data.fromDate && data.endDate) {
+    html = html.replace('{{#if_dates}}', '');
+    html = html.replace('{{/if_dates}}', '');
+    html = html.replace(/{{from_date}}/g, data.fromDate);
+    html = html.replace(/{{end_date}}/g, data.endDate);
+  } else {
+    html = html.replace(/{{#if_dates}}[\s\S]*?{{\/if_dates}}/, '');
+  }
 
   // Logo conditionals:
   // 1. TNSkill Master Logo (Top-Center - Common for all certificates)

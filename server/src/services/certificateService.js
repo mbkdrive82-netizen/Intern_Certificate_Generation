@@ -379,7 +379,7 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
     options.templateId ? CertificateTemplate.findById(options.templateId).lean() : CertificateTemplate.findOne({ isActive: true }).lean(),
     Course.find().lean(),
     Setting.find({ key: { $in: ['tnskill_logo', 'sm_groups_logo'] } }).lean(),
-    Certificate.find({ studentId: { $in: students.map(s => s._id) } }).lean(),
+    Certificate.find({ studentId: { $in: students.map(s => s._id) } }),
     Certificate.findOne({ certificateId: new RegExp(`^${prefix}`) }).sort({ certificateId: -1 }).lean()
   ]);
 
@@ -476,7 +476,7 @@ const generateBulkCertificates = async (filter = {}, options = {}) => {
         try {
           const res = await generateStudentCertificate(
             student._id,
-            { ...options, skipPreviewScreenshot: true, student, assignedCertificateId: assignedCertId },
+            { ...options, student, assignedCertificateId: assignedCertId },
             batchBrowser,
             workerPage,
             cachedContext

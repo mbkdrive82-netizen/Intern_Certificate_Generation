@@ -4,7 +4,7 @@ import jsPDF from 'jspdf';
  * Instantly download crisp print-ready A4 landscape PDF directly in client browser
  * 0 Server Load, 0 Memory Leak, 0 Gateway Timeout, 100% Instant Delivery
  */
-export const downloadPdfFromImage = (dataUriOrUrl, filename = 'Certificate.pdf') => {
+export const downloadPdfFromImage = async (dataUriOrUrl, filename = 'Certificate.pdf') => {
   if (!dataUriOrUrl) return;
 
   const sanitizedFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
@@ -25,30 +25,30 @@ export const downloadPdfFromImage = (dataUriOrUrl, filename = 'Certificate.pdf')
     }
   }
 
-  const img = new Image();
-  img.crossOrigin = 'Anonymous';
-  img.onload = () => {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || 1123;
-      canvas.height = img.naturalHeight || 794;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      const dataUri = canvas.toDataURL('image/jpeg', 0.95);
-
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
-      pdf.addImage(dataUri, 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
-      pdf.save(sanitizedFilename);
-    } catch (err) {
-      window.open(dataUriOrUrl, '_blank');
+  // If it's a PDF URL or file URL, fetch directly as blob and trigger download
+  try {
+    const res = await fetch(dataUriOrUrl);
+    if (res.ok) {
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = sanitizedFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      return;
     }
-  };
-  img.onerror = () => {
-    window.open(dataUriOrUrl, '_blank');
-  };
-  img.src = dataUriOrUrl;
+  } catch (err) {
+    console.warn('Fetch blob download error, trying direct image/link fallback:', err);
+  }
+
+  const link = document.createElement('a');
+  link.href = dataUriOrUrl;
+  link.download = sanitizedFilename;
+  link.target = '_blank';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };

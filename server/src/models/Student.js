@@ -43,6 +43,21 @@ const StudentSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    fromDate: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    endDate: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    issueDate: {
+      type: String,
+      default: '',
+      trim: true
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

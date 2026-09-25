@@ -57,7 +57,6 @@ const AdminColleges = () => {
 
   // Per-row download loading state
   const [downloadingId, setDownloadingId] = useState(null);
-  const [downloadingZipId, setDownloadingZipId] = useState(null);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -155,33 +154,6 @@ const AdminColleges = () => {
       setToast({ message: err.response?.data?.message || 'Failed to reset credentials', type: 'error' });
     } finally {
       setDownloadingId(null);
-    }
-  };
-
-  const downloadAllCertificatesZip = (col) => {
-    try {
-      setDownloadingZipId(col._id);
-      setToast({ message: `Preparing & packing all certificates for ${col.name}... Download will start shortly.`, type: 'info' });
-
-      const backendUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api$/, '') : 'https://intern-certificate-generation.onrender.com';
-      const cleanName = (col.name || 'College').replace(/[^a-zA-Z0-9_-]/g, '_');
-      const token = localStorage.getItem('token');
-      const downloadUrl = `${backendUrl}/api/admin/colleges/${col._id}/download-certificates-zip?token=${encodeURIComponent(token || '')}`;
-
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.setAttribute('download', `${cleanName}_Certificates.zip`);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      setTimeout(() => {
-        setDownloadingZipId(null);
-      }, 3000);
-    } catch (err) {
-      console.error(err);
-      setToast({ message: 'Failed to download certificates ZIP. Ensure certificates are generated.', type: 'error' });
-      setDownloadingZipId(null);
     }
   };
 
@@ -323,19 +295,6 @@ const AdminColleges = () => {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => downloadAllCertificatesZip(col)}
-                          disabled={downloadingZipId === col._id || (col.studentCount || 0) === 0}
-                          title={`Download all certificates for ${col.name} as ZIP`}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                        >
-                          {downloadingZipId === col._id ? (
-                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Archive className="w-3.5 h-3.5" />
-                          )}
-                          <span className="hidden md:inline">{downloadingZipId === col._id ? 'Packing ZIP...' : 'Certificates ZIP'}</span>
-                        </button>
 
                         <button
                           onClick={() => resetAndDownload(col)}

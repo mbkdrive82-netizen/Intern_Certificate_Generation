@@ -84,7 +84,10 @@ const processStudentExcel = async (filePath, options = {}) => {
     department: ['department', 'dept', 'branch', 'department name', 'stream', 'discipline', 'course branch'],
     year: ['year', 'year of study', 'semester', 'sem', 'class', 'academic year'],
     company: ['company', 'company name', 'sub company', 'partner', 'partner company', 'training partner', 'sub-company'],
-    course: ['course', 'course name', 'internship domain', 'domain', 'training topic', 'topic', 'training module']
+    course: ['course', 'course name', 'internship domain', 'domain', 'training topic', 'topic', 'training module'],
+    fromDate: ['from date', 'start date', 'from_date', 'start_date', 'internship from', 'from', 'joining date', 'start'],
+    endDate: ['end date', 'to date', 'end_date', 'to_date', 'internship to', 'to', 'completion date', 'end'],
+    issueDate: ['issue date', 'certificate date', 'date of issue', 'issue_date', 'cert date', 'date', 'issued on']
   };
 
   const getFieldKey = (fieldName) => {
@@ -115,6 +118,15 @@ const processStudentExcel = async (filePath, options = {}) => {
         return k;
       }
       if (fieldName === 'course' && (cleanK.includes('course') || cleanK.includes('topic') || cleanK.includes('domain'))) {
+        return k;
+      }
+      if (fieldName.toLowerCase() === 'fromdate' && (cleanK.includes('from') || cleanK.includes('start'))) {
+        return k;
+      }
+      if (fieldName.toLowerCase() === 'enddate' && (cleanK.includes('end') || cleanK.includes('to') || cleanK.includes('completion'))) {
+        return k;
+      }
+      if (fieldName.toLowerCase() === 'issuedate' && (cleanK.includes('issue') || cleanK.includes('certdate') || cleanK === 'date')) {
         return k;
       }
     }
@@ -229,6 +241,9 @@ const processStudentExcel = async (filePath, options = {}) => {
     let year = getVal(row, 'Year') || 'IV';
     let companyName = getVal(row, 'Company');
     let courseName = getVal(row, 'Course') || 'IoT Application (ESP32)';
+    let fromDate = getVal(row, 'fromDate');
+    let endDate = getVal(row, 'endDate');
+    let issueDate = getVal(row, 'issueDate');
 
     // Smart fallback if company or college is empty
     if (!companyName) {
@@ -331,6 +346,9 @@ const processStudentExcel = async (filePath, options = {}) => {
         year,
         company: company.name,
         course: course.name,
+        fromDate,
+        endDate,
+        issueDate,
         userId: user._id,
         tempPassword
       });
@@ -349,7 +367,10 @@ const processStudentExcel = async (filePath, options = {}) => {
         username,
         tempPassword,
         company: company.name,
-        course: course.name
+        course: course.name,
+        fromDate,
+        endDate,
+        issueDate
       });
     } catch (err) {
       failed++;
@@ -379,6 +400,9 @@ const generateCredentialExcelBuffer = (students) => {
     'College': s.collegeId && s.collegeId.name ? s.collegeId.name : (s.college || 'N/A'),
     'Department': s.department,
     'Year': s.year,
+    'From Date': s.fromDate || '',
+    'End Date': s.endDate || '',
+    'Issue Date': s.issueDate || '',
     'Username': s.userId && s.userId.username ? s.userId.username : (s.username || 'N/A'),
     'Temporary Password': s.tempPassword || '******',
     'Company': s.company,
