@@ -288,20 +288,6 @@ const processStudentExcel = async (filePath, options = {}) => {
         }
       }
 
-      // Check Duplicate Student within current batch
-      const dupKey = `${name.toLowerCase().trim()}_${college._id}_${department.toLowerCase().trim()}_${fromDate || ''}_${companyName.toLowerCase().trim()}`;
-      if (batchStudentsSet.has(dupKey)) {
-        duplicates++;
-        failed++;
-        failedRows.push({
-          rowNumber,
-          studentName: name,
-          reason: `Duplicate row in upload sheet: ${name} (${college.name} - ${department})`
-        });
-        continue;
-      }
-      batchStudentsSet.add(dupKey);
-
       // Ensure Company exists
       const compKey = companyName.toLowerCase().trim();
       let company = companiesMap.get(compKey);
