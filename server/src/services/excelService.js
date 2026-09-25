@@ -164,19 +164,21 @@ const processStudentExcel = async (filePath, options = {}) => {
   // 1. Pre-fetch in-memory caches to avoid N+1 DB roundtrips
   const currentYear = new Date().getFullYear();
   const prefix = `TNS-${currentYear}-`;
-  
-  const lastStudent = await Student.findOne({ studentId: new RegExp(`^${prefix}`) })
-    .sort({ studentId: -1 })
-    .lean();
 
-  let nextSeq = 1;
-  if (lastStudent && lastStudent.studentId) {
-    const parts = lastStudent.studentId.split('-');
-    if (parts.length === 3) {
-      const parsed = parseInt(parts[2], 10);
-      if (!isNaN(parsed)) nextSeq = parsed + 1;
+  // Cache existing students and calculate true max numerical sequence
+  const allExistingStudents = await Student.find({}, 'studentId name collegeId department').lean();
+  const existingStudentIds = new Set(allExistingStudents.map(s => s.studentId).filter(Boolean));
+
+  let maxSeq = 0;
+  allExistingStudents.forEach(s => {
+    if (s.studentId && s.studentId.startsWith(prefix)) {
+      const numStr = s.studentId.replace(prefix, '');
+      const num = parseInt(numStr, 10);
+      if (!isNaN(num) && num > maxSeq) maxSeq = num;
     }
-  }
+  });
+
+  let nextSeq = maxSeq + 1;
 
   // Cache existing usernames
   const allUsers = await User.find({}, 'username').lean();
@@ -200,11 +202,8 @@ const processStudentExcel = async (filePath, options = {}) => {
   const coursesMap = new Map();
   allCourses.forEach(c => coursesMap.set(`${c.name.toLowerCase().trim()}_${c.companyId}`, c));
 
-  // Cache existing students for duplicate check
-  const allExistingStudents = await Student.find({}, 'name collegeId department').lean();
-  const existingStudentsSet = new Set(
-    allExistingStudents.map(s => `${s.name.toLowerCase().trim()}_${s.collegeId}_${s.department.toLowerCase().trim()}`)
-  );
+  // Batch duplicate tracker
+  const batchStudentsSet = new Set();
 
   let successful = 0;
   let failed = 0;
@@ -289,19 +288,19 @@ const processStudentExcel = async (filePath, options = {}) => {
         }
       }
 
-      // Check Duplicate Student via in-memory Set
-      const dupKey = `${name.toLowerCase().trim()}_${college._id}_${department.toLowerCase().trim()}`;
-      if (existingStudentsSet.has(dupKey)) {
+      // Check Duplicate Student within current batch
+      const dupKey = `${name.toLowerCase().trim()}_${college._id}_${department.toLowerCase().trim()}_${fromDate || ''}_${companyName.toLowerCase().trim()}`;
+      if (batchStudentsSet.has(dupKey)) {
         duplicates++;
         failed++;
         failedRows.push({
           rowNumber,
           studentName: name,
-          reason: `Duplicate student record found in ${college.name} (${department})`
+          reason: `Duplicate row in upload sheet: ${name} (${college.name} - ${department})`
         });
         continue;
       }
-      existingStudentsSet.add(dupKey);
+      batchStudentsSet.add(dupKey);
 
       // Ensure Company exists
       const compKey = companyName.toLowerCase().trim();
@@ -321,9 +320,13 @@ const processStudentExcel = async (filePath, options = {}) => {
         coursesMap.set(courseKey, course);
       }
 
-      // Generate credentials
-      const studentId = `${prefix}${String(nextSeq).padStart(5, '0')}`;
-      nextSeq++;
+      // Generate guaranteed unique student credentials
+      let studentId;
+      do {
+        studentId = `${prefix}${String(nextSeq).padStart(5, '0')}`;
+        nextSeq++;
+      } while (existingStudentIds.has(studentId));
+      existingStudentIds.add(studentId);
 
       const tempPassword = generateTempPassword();
       const username = getFastUsername(name);
