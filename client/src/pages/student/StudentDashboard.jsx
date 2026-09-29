@@ -13,6 +13,8 @@ const StudentDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
@@ -33,12 +35,84 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleOpenPreview = async () => {
+    setPreviewModalOpen(true);
+    const cert = data?.certificate;
+    if (!cert) return;
+
+    if (cert.previewImagePath) {
+      setPreviewLoading(false);
+      return;
+    }
+
+    try {
+      setPreviewLoading(true);
+      const res = await api.get(`/admin/certificates/${cert._id || cert.certificateId}/preview-html`);
+      let html = typeof res.data === 'string' ? res.data : '';
+      const responsiveScript = `
+<style id="client-preview-autofit-style">
+  @media screen {
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      overflow: hidden !important;
+      background: #f1f5f9 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .cert-frame {
+      transform-origin: center center !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12) !important;
+      flex-shrink: 0 !important;
+      transition: transform 0.1s ease-out;
+    }
+  }
+</style>
+<script>
+  function autoFitPreview() {
+    var cert = document.querySelector('.cert-frame');
+    if (!cert) return;
+    var pad = 16;
+    var availW = window.innerWidth - pad;
+    var availH = window.innerHeight - pad;
+    var certW = 1123;
+    var certH = 794;
+    var scale = Math.min(availW / certW, availH / certH);
+    cert.style.transform = 'scale(' + scale + ')';
+  }
+  window.addEventListener('resize', autoFitPreview);
+  window.addEventListener('DOMContentLoaded', autoFitPreview);
+  window.addEventListener('load', autoFitPreview);
+  autoFitPreview();
+  setTimeout(autoFitPreview, 50);
+  setTimeout(autoFitPreview, 250);
+</script>
+`;
+      if (html && !html.includes('preview-autofit-style') && !html.includes('client-preview-autofit-style')) {
+        if (html.includes('</head>')) {
+          html = html.replace('</head>', `${responsiveScript}</head>`);
+        } else {
+          html += responsiveScript;
+        }
+      }
+      setPreviewHtml(html);
+    } catch (err) {
+      console.error('Failed to load preview html:', err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleDownload = async () => {
     try {
       setDownloading(true);
       const cert = data?.certificate;
+      const student = data?.student;
       const certId = cert?.certificateId || 'ID';
-      const studentName = (student?.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+      const studentName = (student?.name || 'Student').replace(/[^a-zA-Z0-9_-]/g, '_');
       const filename = `${studentName}_Certificate_${certId}.pdf`;
 
       // 1. Instant local client-side PDF generation if preview image is available (0.05s)
@@ -47,33 +121,16 @@ const StudentDashboard = () => {
         return;
       }
 
-      // 2. Direct backend PDF stream with 5s timeout
-      try {
-        const res = await api.get('/student/certificate/download', {
-          responseType: 'blob',
-          timeout: 5000
-        });
-        const blob = new Blob([res.data], { type: 'application/pdf' });
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-        return;
-      } catch (apiErr) {
-        console.warn('API direct download failed or timed out:', apiErr);
-      }
+      // 2. Direct backend PDF download via browser stream
+      const backendUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api$/, '') : 'https://intern-certificate-generation.onrender.com';
+      const downloadUrl = `${backendUrl}/api/admin/certificates/${cert?._id || certId}/download-pdf`;
 
-      // 3. Fallback to direct asset link
-      const fallbackUrl = getAssetUrl(cert?.filePath);
-      if (fallbackUrl) {
-        window.open(fallbackUrl, '_blank');
-      } else {
-        alert('Certificate file is not ready yet. Please try again in a few moments.');
-      }
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error('Download error:', err);
       alert('Unable to download certificate at this moment. Please try viewing it first.');
@@ -108,7 +165,7 @@ const StudentDashboard = () => {
             {certificateStatus === 'GENERATED' && (
               <div className="flex flex-wrap items-center gap-2">
                 <button
-                  onClick={() => setPreviewModalOpen(true)}
+                  onClick={handleOpenPreview}
                   className="flex items-center space-x-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl border border-blue-200 text-xs transition-all cursor-pointer shadow-xs"
                 >
                   <Eye className="w-4 h-4" />
@@ -205,7 +262,10 @@ const StudentDashboard = () => {
                   <span>Download PDF</span>
                 </button>
                 <button
-                  onClick={() => setPreviewModalOpen(false)}
+                  onClick={() => {
+                    setPreviewModalOpen(false);
+                    setPreviewHtml('');
+                  }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -214,12 +274,24 @@ const StudentDashboard = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-slate-100">
-              {certificate.previewImagePath ? (
+            <div className="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-slate-100 min-h-[400px]">
+              {previewLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs text-slate-500 font-medium mt-2">Loading certificate preview...</p>
+                </div>
+              ) : certificate.previewImagePath ? (
                 <img
                   src={getAssetUrl(certificate.previewImagePath)}
                   alt="Certificate Full View"
                   className="w-full h-auto max-h-[75vh] object-contain rounded-lg shadow-md border border-slate-200 bg-white"
+                />
+              ) : previewHtml ? (
+                <iframe
+                  srcDoc={previewHtml}
+                  title="Certificate Preview"
+                  className="w-full h-[580px] border-0 rounded-lg shadow-sm"
+                  sandbox="allow-same-origin allow-scripts"
                 />
               ) : (
                 <div className="p-12 text-center text-slate-500">
