@@ -47,13 +47,18 @@ router.get('/companies/:id/bg-image', getCompanyBgImage);
 router.get('/certificates/:id/preview-html', getCertificateHtmlPreview);
 router.get('/certificates/:id/download-pdf', downloadCertificatePdf);
 
+// Shared Read Access for SM_GROUPS_ADMIN and TNSKILLS_ADMIN
+router.get('/certificates', requireAuth, requireRole('SM_GROUPS_ADMIN', 'TNSKILLS_ADMIN'), getCertificates);
+router.get('/certificates/bulk-progress', requireAuth, requireRole('SM_GROUPS_ADMIN', 'TNSKILLS_ADMIN'), getBulkGenerationProgress);
+router.get('/companies', requireAuth, requireRole('SM_GROUPS_ADMIN', 'TNSKILLS_ADMIN'), getCompanies);
+router.get('/colleges', requireAuth, requireRole('SM_GROUPS_ADMIN', 'TNSKILLS_ADMIN'), getColleges);
+
 // All other endpoints require SM_GROUPS_ADMIN role
 router.use(requireAuth, requireRole('SM_GROUPS_ADMIN'));
 
 router.get('/dashboard', getDashboard);
 
 // Colleges
-router.get('/colleges', getColleges);
 router.post('/colleges', createCollege);
 router.put('/colleges/:id', updateCollege);
 router.delete('/colleges/:id', deleteCollege);

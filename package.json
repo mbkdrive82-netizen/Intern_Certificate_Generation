@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "TN SKILLS - Student & Certificate Management System",
   "scripts": {
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently \"npm run server\" \"npm run client\"",
     "install:server": "cd server && npm install",
     "install:client": "cd client && npm install",
     "install:all": "npm run install:server && npm run install:client",
@@ -11,5 +13,8 @@
     "client": "cd client && npm run dev",
     "build": "cd client && npm run build",
     "start": "cd server && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

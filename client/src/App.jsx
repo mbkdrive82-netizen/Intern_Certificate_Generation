@@ -68,6 +68,7 @@ function App() {
             <Route path="/tnskills/dashboard" element={<TNSkillsDashboard />} />
             <Route path="/tnskills/colleges" element={<TNSkillsColleges />} />
             <Route path="/tnskills/colleges/:id" element={<TNSkillsCollegeDetail />} />
+            <Route path="/tnskills/certificates" element={<AdminCertificates />} />
           </Route>
 
           {/* COLLEGE Admin Routes */}

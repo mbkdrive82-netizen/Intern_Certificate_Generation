@@ -41,7 +41,8 @@ const Sidebar = ({ mobileOpen, onCloseMobile }) => {
   } else if (user.role === 'TNSKILLS_ADMIN') {
     workspaceItems = [
       { label: 'Dashboard', path: '/tnskills/dashboard', icon: LayoutDashboard },
-      { label: 'Colleges', path: '/tnskills/colleges', icon: Building2 }
+      { label: 'Colleges', path: '/tnskills/colleges', icon: Building2 },
+      { label: 'View Certificates', path: '/tnskills/certificates', icon: FileText }
     ];
   } else if (user.role === 'COLLEGE_ADMIN') {
     workspaceItems = [
